@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="在这篇文章中我们先谈一下并发编程的几种形式。">
+<meta name="keywords" content="Language,程序语言">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Concurrency In Cpp(1)">
+<meta property="og:url" content="http://wkkkkk.github.io/2019/06/21/concurrency-in-cpp-1/index.html">
+<meta property="og:site_name" content="Wkkkkk">
+<meta property="og:description" content="在这篇文章中我们先谈一下并发编程的几种形式。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-27T11:59:19.763Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Concurrency In Cpp(1)">
+<meta name="twitter:description" content="在这篇文章中我们先谈一下并发编程的几种形式。">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Wkkkkk" type="application/atom+xml">
+
+
+
+  
+  
+  <link rel="canonical" href="http://wkkkkk.github.io/2019/06/21/concurrency-in-cpp-1/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Concurrency In Cpp(1) | Wkkkkk</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Wkkkkk</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://wkkkkk.github.io/2019/06/21/concurrency-in-cpp-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Wkkkkk">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wkkkkk">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Concurrency In Cpp(1)
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+			
+          <span class="post-time">
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-06-21 14:50:52" itemprop="dateCreated datePublished" datetime="2019-06-21T14:50:52+08:00">2019-06-21</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-27 19:59:19" itemprop="dateModified" datetime="2019-06-27T19:59:19+08:00">2019-06-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="post-meta-item-icon">
+            <i class="fa fa-eye"></i>
+             阅读次数： 
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在这篇文章中我们先谈一下并发编程的几种形式。</p>
+<a id="more"></a>
+
+<p>Herb Sutter在<a href="http://www.drdobbs.com/parallel/the-pillars-of-concurrency/200001985?pgno=1" target="_blank" rel="noopener">The Pillars of Concurrency</a>一文中介绍了并发编程的三种形式：</p>
+<p>一是异步模型，即对任务进行粒度划分并投递到任务的执行单元中去调度执行；</p>
+<p>二是并行计算，如何利用支持并行的数据结构和算法来利用CPU资源，提高系统的吞吐量及拓展性；</p>
+<p>三是利用一些同步手段确保可变的共享资源的一致性。</p>
+<h2 id="异步的需要"><a href="#异步的需要" class="headerlink" title="异步的需要"></a>异步的需要</h2><p>为什么需要支持异步呢？</p>
+<p>多核处理器几乎无处不在、并在云中分布的核，使得计算机体系结构变得越来越并行化和分布式化。软件程序往往越来越多的由使用了位于单个机器或跨网络的多个核的各组件组成。现代编程语言需要提供对这种并行的支持。</p>
+<p>同时，响应性（这是响应式编程的原则之一）已成为越来越不可或缺的软件质量。响应性的意思是在进行IO操作时不是阻塞住等待它的完成。在服务器端不阻塞一个worker线程、而让它继续做其他的事情，待操作完成后等待下一个任务。在客户端不阻塞主线程或GUI线程，否则将使程序变得反应迟钝。因此能写异步代码对于管理IO操作的延迟越来越重要。例如，在WinRT中有一个规则，所有耗时超过50ms的IO密集型API只提供异步接口，甚至没有传统的阻塞式接口可调用。</p>
+<h2 id="异步模型"><a href="#异步模型" class="headerlink" title="异步模型"></a>异步模型</h2><p>异步模型无非是指将任务进行划分，在其他执行单元中独立地运行，通过异步消息来进行通信，来避免阻塞交互线程或其他重要线程。同时，这种做法便于也对分离的任务进行测试。</p>
+<p>异步模型最典型的应用是将耗时的任务的创建与执行分离，避免阻塞GUI主线程，保证用户与应用程序的交互得到及时的响应。不仅是耗时的计算任务(比如后台计算)，一些可能阻塞的IO任务(比如等待锁，或是网络服务的响应)也会阻塞主线程。</p>
+<p>在异步模型中，独立的任务一般会通过消息队列(而通过不是共享对象)的方式来完成通信。以桌面应用程序为例，开发者常常会选择一些非常成熟的基于消息队列的事件驱动模型。</p>
+<p>目前最常见的异步模型的实现是通过将任务打包到线程池中进行执行，这样前端页面所运行的线程能保证对用户的动作进行实时的反馈，两者通过消息队列或者类似于消息的抽象(如Java <code>Future</code>, .NET <code>IAsyncResult</code>)来进行通信。</p>
+<p>可以预见的是，在不远的将来，我们能得到一些新的工具和抽象来实现这种模型，一些可能的实现包括Actor模型(对象独立地运行在自己的环境中，相互之间通过异步消息来进行通信)，不同任务之间通过管道(channels)通信，亦或是通过一些显式的语法约定来确保消息的顺序。</p>
+<h2 id="并行计算"><a href="#并行计算" class="headerlink" title="并行计算"></a>并行计算</h2><p>并行计算要要解决的问题是尽可能地利用可用的核心来加速并行任务的计算。比如使用并行的数据结构或算法来对容器(或其他对象的集合)进行操作。新的硬件在计算能力上的停滞不前使得单线程程序的计算能力受到限制。另一方面，新的硬件提供了更多的CPU核心来支持多线程计算的并发能力。如何顺应这种潮流来加速并行任务的执行，对我们编写应用程序也提出了挑战。</p>
+<p>伸缩性的关键并不在于将耗时任务划分到固定数量的线程中，比如游戏程序常会划分出计算线程，渲染线程和其他辅助线程。这种做法使得应用程序更倾向于在固定数量(比如K)的核心上运行，这无疑降低了程序在其他没有那么多核心的机器上的表现。尽管有些应用场景下硬件配置是固定的，像是游戏程序的结构一般保持固定，但是这种做法并没有足够的伸缩性来适应更多的并行。</p>
+<p>相反，伸缩性的关键在于保证程序能适应不同尺度的输入(比如消息的数量，容器的尺寸)。主要的做法有两种：</p>
+<p>一是使用一些三方库或者抽象手段来表达你想要做的事情，而不是如何去做。就目前来说，我们可以使用一些像OpenMP的工具来并行地执行一个循环，在运行时来决定如何适当的划分任务来利用现用的核心。可以期待的是，STL或LINQ会提供一些并行工具来让我们并行地对内存中的容器执行一些查询操作，比如像获取按成绩排序后所有在校学生的姓名，就像是在对SQL数据库服务进行查询一样。</p>
+<p>二是通过既有的框架并行地执行任务。比如我们可以向线程池(如Java <code>ThreadPoolExecutor</code> or .NET <code>BackgroundWorker</code>)中提交任务。但是要留意的是任务的提交也是有损失的，所以我们要确定任务是值得提交的。举例来说，当我们推导一个迭代算法像快速排序时，算法的每一步都需要并行地对左右子串进行排序，当子串很小时我们需要特别处理。</p>
+<p>未来基于work steal的运行时系统应该会使得这些问题更像简单，我们可以简单地将任务交付于并行系统，不用考虑任务的大小问题，由系统来动态地决定是否并行地处理任务。对于没有并行处理的情况，我们希望它相较于串行计算来说，性能损失可以忽略不计。</p>
+<h2 id="同步"><a href="#同步" class="headerlink" title="同步"></a>同步</h2><p>同步手段可以帮助我们正确地处理共享资源。现如今的通常做法是通过锁来控制对共享对象的访问。尽管锁有这样或那样的问题，但是它仍是处理一般问题最好的工具。尽管一些框架提供了通过原子变量实现的无锁数据结构(如hash tables)，但这种做法并不是通用的。因为一些通用的数据结构暂时没有无锁的实现。所以，还是学着使用锁吧。</p>
+<p>![The Pillars of Concurrency](/concurrency-in-cpp-1/The Pillars of Concurrency.png)</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>尽管上诉的三种形式强调不同的问题，但是他们也可以组合来解决问题。</p>
+<p>举例来说，一个应用程序可以将复杂的树遍历操作的执行从GUI主线程中移动到后台，保证图形界面实时的反馈，而树遍历操作可以在内部使用并行算法来加速计算。尽管这两种形式使用不同的模式来解决不同的问题，但是它们可以被高效地组合利用——无论计算任务耗时如何，用户的机器性能怎样，应用程序都可以保证实时的响应；而在其他高性能的场合，应用程序的伸缩能力也保证了对资源的有效利用。</p>
+<p>相反地，你也可以利用这种思想将一些并发工具、要求或技术拆解成基本的形式。通过更好地理解每一部分以及它们如何关联，我们也可以更准确地理解它们作为一个整体要达到的目标，并评价这种做法是否可行，有没有其他更好的方法，或者如何只改变其中一个基本组件来提高整体的表现。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Language/" rel="tag"># Language</a>
+          
+            <a href="/tags/程序语言/" rel="tag"># 程序语言</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/19/The-Design-of-Task-System/" rel="next" title="The Design of Task System">
+                <i class="fa fa-chevron-left"></i> The Design of Task System
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/06/24/concurrency-in-cpp-2/" rel="prev" title="Concurrency In Cpp(2)">
+                Concurrency In Cpp(2) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDkwNC8yMTQyNg=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Wkkkkk</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">32</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#异步的需要"><span class="nav-text">异步的需要</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#异步模型"><span class="nav-text">异步模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#并行计算"><span class="nav-text">并行计算</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#同步"><span class="nav-text">同步</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-fas fa-heartbeat"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wkkkkk</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-user"></i>
+    </span>
+    <span class="site-uv" title="总访客量">
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+    </span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+  
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-eye"></i>
+    </span>
+    <span class="site-pv" title="总访问量">
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+    <script>
+  window.livereOptions = {
+    refer: '2019/06/21/concurrency-in-cpp-1/'
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+</script>
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

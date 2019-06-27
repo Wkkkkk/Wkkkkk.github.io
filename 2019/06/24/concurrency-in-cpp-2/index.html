@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="在这篇文章中我们介绍Cpp标准库和拓展库中有哪些并发工具。">
+<meta name="keywords" content="Language,程序语言">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Concurrency In Cpp(2)">
+<meta property="og:url" content="http://wkkkkk.github.io/2019/06/24/concurrency-in-cpp-2/index.html">
+<meta property="og:site_name" content="Wkkkkk">
+<meta property="og:description" content="在这篇文章中我们介绍Cpp标准库和拓展库中有哪些并发工具。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://wkkkkk.github.io/concurrency-in-cpp-2/timelineCpp17andCpp20.png">
+<meta property="og:image" content="http://wkkkkk.github.io/concurrency-in-cpp-2/ForkJoin.png">
+<meta property="og:updated_time" content="2019-06-27T11:59:19.790Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Concurrency In Cpp(2)">
+<meta name="twitter:description" content="在这篇文章中我们介绍Cpp标准库和拓展库中有哪些并发工具。">
+<meta name="twitter:image" content="http://wkkkkk.github.io/concurrency-in-cpp-2/timelineCpp17andCpp20.png">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Wkkkkk" type="application/atom+xml">
+
+
+
+  
+  
+  <link rel="canonical" href="http://wkkkkk.github.io/2019/06/24/concurrency-in-cpp-2/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Concurrency In Cpp(2) | Wkkkkk</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Wkkkkk</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://wkkkkk.github.io/2019/06/24/concurrency-in-cpp-2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Wkkkkk">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wkkkkk">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Concurrency In Cpp(2)
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+			
+          <span class="post-time">
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-06-24 14:15:55" itemprop="dateCreated datePublished" datetime="2019-06-24T14:15:55+08:00">2019-06-24</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-27 19:59:19" itemprop="dateModified" datetime="2019-06-27T19:59:19+08:00">2019-06-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="post-meta-item-icon">
+            <i class="fa fa-eye"></i>
+             阅读次数： 
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在这篇文章中我们介绍Cpp标准库和拓展库中有哪些并发工具。</p>
+<a id="more"></a>
+
+<p><img src="/concurrency-in-cpp-2/timelineCpp17andCpp20.png" alt="timelineCpp17andCpp20"></p>
+<p>基于多核架构的要求，<code>C++11</code>标准定义程序了在多线程中的表现。包括两个方面，其一是标准<a href="http://www.modernescpp.com/index.php/category/multithreading-memory-model" target="_blank" rel="noopener">内存模型</a>，其二则是一些标准<a href="http://www.modernescpp.com/index.php/category/multithreading" target="_blank" rel="noopener">多线程API</a>。从此你可以通过<code>std::async</code>、<code>packaged_task</code>、<code>promise</code>、<code>future</code>来构建异步任务。</p>
+<p>总的来说，<code>C++11</code>提供的工具毁誉参半。一方面，这些工具比起直接使用<code>thread</code>或条件变量来说要方便的多；另一方面，这种形式并不完整——它们无法被组合。<code>C++20/23</code>标准尝试解决这些问题，并且提供了更多的并发拓展。</p>
+<h2 id="工具分类"><a href="#工具分类" class="headerlink" title="工具分类"></a>工具分类</h2><p>按功能来分有这些：</p>
+<ol>
+<li>资源的访问——<code>C++11</code>标准提供了一些基本的同步原语<code>atomic</code>、<code>mutex</code>、<code>lock</code>、<code>condition_variable</code>；</li>
+<li>任务的封装——<code>C++11</code>标准提供了几种任务封装形式<code>future</code>、<code>promise</code>、<code>packaged_task</code>；</li>
+<li>并行版算法——<code>C++17</code>标准提供了常用算法的并行版本；</li>
+<li>任务的结构——在<code>C++20</code>里将补全任务结构控制，包括<code>then、 when_all、 when_any</code>这三个用来关联多个<code>future</code>的函数。</li>
+<li>任务的执行——现有的任务执行者基本都是线程池，每个线程不断的尝试获取一个任务并执行，类似于一个while循环。此外，在<code>C++20/23</code>中有<code>executor</code>的提案；</li>
+<li>任务的调度——这部分负责了任务的投递和分发，他在多线程之间维持了一个任务容器集合，提供的接口主要包括接受新任务、取出一个任务和判断容器是否为空，最常见的是<code>concurrenct_queue</code>。这部分标准库并没有提供，有多种不同的<a href="https://zhuanlan.zhihu.com/p/55583561" target="_blank" rel="noopener">实现方式</a>。</li>
+</ol>
+<h2 id="C-17"><a href="#C-17" class="headerlink" title="C++17"></a>C++17</h2><p>C++17标准为标准模板库中大部分的算法提供了并行的版本，你可以通过所谓的执行策略来调用。执行策略指明了算法是串行(std::seq)，并行(std::par)还是并行矢量式(std::par_unseq)运行。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">std</span>::<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; vec =&#123;<span class="number">3</span>, <span class="number">2</span>, <span class="number">1</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">10</span>, <span class="number">8</span>, <span class="number">9</span>, <span class="number">4</span>&#125;;</span><br><span class="line"></span><br><span class="line"><span class="built_in">std</span>::sort(vec.begin(), vec.end());                            <span class="comment">// sequential as ever</span></span><br><span class="line"><span class="built_in">std</span>::sort(<span class="built_in">std</span>::execution::seq, vec.begin(), vec.end());       <span class="comment">// sequential</span></span><br><span class="line"><span class="built_in">std</span>::sort(<span class="built_in">std</span>::execution::par, vec.begin(), vec.end());       <span class="comment">// parallel</span></span><br><span class="line"><span class="built_in">std</span>::sort(<span class="built_in">std</span>::execution::par_unseq, vec.begin(), vec.end()); <span class="comment">// parallel and vectorized</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="C-20"><a href="#C-20" class="headerlink" title="C++20"></a>C++20</h2><p>基于新的多线程理念，<a href="https://zhuanlan.zhihu.com/p/51530309" target="_blank" rel="noopener">C++20标准</a>提供了更多组件。</p>
+<h3 id="原子智能指针"><a href="#原子智能指针" class="headerlink" title="原子智能指针"></a>原子智能指针</h3><p>现有的智能指针<code>std::shared_ptr</code>和<code>std::weak_ptr</code>在多线程序中有一个潜在的问题——共享了一个可变对象的状态。这种方式可能造成<a href="http://www.modernescpp.com/index.php/threads-sharing-data" target="_blank" rel="noopener">数据竞争</a>导致未定义的行为。</p>
+<p>现有的智能指针通过<u>原子</u>引用计数来保证资源的正确释放，但是这没有保证资源的访问是原子性的，新的原子智能指针<code>std::atomic_shared_ptr</code>、<code>std::atomic_weak_ptr</code>就是用来解决这些问题的。</p>
+<h3 id="std-future拓展"><a href="#std-future拓展" class="headerlink" title="std::future拓展"></a>std::future拓展</h3><p><code>promise</code>和<code>future</code>提供了一种在多线程程序开发中构建异步任务的概念。尽管简化了问题的复杂性，但是它们仍存在不能组合的问题。在<code>C++20</code>中提供了更多的拓展来解决上述的问题。</p>
+<ul>
+<li><p>then</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">future&lt;<span class="keyword">int</span>&gt; f1= async([]() &#123; <span class="keyword">return</span> <span class="number">123</span>; &#125;);</span><br><span class="line">future&lt;<span class="built_in">string</span>&gt; f2 = f1.then([](future&lt;<span class="keyword">int</span>&gt; f) &#123;     </span><br><span class="line">    <span class="keyword">return</span> f.get().to_string(); </span><br><span class="line">&#125;);        <span class="comment">// won't block</span></span><br><span class="line">f2.get();  <span class="comment">// block</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>when_any</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">future&lt;<span class="keyword">int</span>&gt; futures[] = &#123;async([]() &#123; <span class="keyword">return</span> intResult(<span class="number">125</span>); &#125;),                       </span><br><span class="line">                         async([]() &#123; <span class="keyword">return</span> intResult(<span class="number">456</span>); &#125;)&#125;;</span><br><span class="line">future&lt;<span class="built_in">vector</span>&lt;future&lt;<span class="keyword">int</span>&gt;&gt;&gt; any_f = when_any(begin(futures),end(futures));</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>when_all</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">future&lt;<span class="keyword">int</span>&gt; futures[] = &#123;</span><br><span class="line">    async([]() &#123; <span class="keyword">return</span> intResult(<span class="number">125</span>); &#125;), </span><br><span class="line">    async([]() &#123; <span class="keyword">return</span> intResult(<span class="number">456</span>); &#125;)&#125;;</span><br><span class="line">future&lt;<span class="built_in">vector</span>&lt;future&lt;<span class="keyword">int</span>&gt;&gt;&gt; all_f = when_all(begin(futures), end(futures));</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<h3 id="Latches-and-barriers"><a href="#Latches-and-barriers" class="headerlink" title="Latches and barriers"></a>Latches and barriers</h3><p>迟来的同步原语。栓和栅都是通过计数器来控制资源访问的信号量。不同的是，<code>std::latch</code>的使用是一次性的， 而<code>std::barrier</code>可以被反复使用。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">doWork</span><span class="params">(threadpool* pool)</span></span>&#123;</span><br><span class="line">  <span class="function">latch <span class="title">completion_latch</span><span class="params">(NUMBER_TASKS)</span></span>;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; NUMBER_TASKS; ++i)&#123;</span><br><span class="line">    pool-&gt;add_task([&amp;]&#123;</span><br><span class="line">      <span class="comment">// perform the work</span></span><br><span class="line">      ...</span><br><span class="line">      completion_latch.count_down();</span><br><span class="line">    &#125;);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// block until all tasks are done</span></span><br><span class="line">  completion_latch.wait();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="协程Coroutines"><a href="#协程Coroutines" class="headerlink" title="协程Coroutines"></a>协程Coroutines</h3><p>协程是函数的一种泛化，它提供了挂起和恢复函数调用上下文的语义。协程是实现操作系统，事件循环，无穷李彪或者管线中合作式多任务的一种常用工具。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">generator&lt;<span class="keyword">int</span>&gt; getInts(<span class="keyword">int</span> first, <span class="keyword">int</span> last)&#123;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">auto</span> i= first; i &lt;= last; ++i)&#123;</span><br><span class="line">    co_yield i;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">auto</span> i: getInts(<span class="number">5</span>, <span class="number">10</span>))&#123;</span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">cout</span> &lt;&lt; i &lt;&lt; <span class="string">" "</span>;    <span class="comment">// 5 6 7 8 9 10</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="事务内存Transactional-memory"><a href="#事务内存Transactional-memory" class="headerlink" title="事务内存Transactional memory"></a>事务内存Transactional memory</h3><p>事务内存是基于数据库理论中的事务处理的一种概念。事务表示一个原子的，一致的，独立的，持久的动作。除了持久的特性，其他的的特性在C++事务内存中都得到了保证。</p>
+<p>C++事务内存分为同步块和原子块两种形式，他们都保证了内部的代码按照固定的顺序执行，而且持有全局锁。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">func</span><span class="params">()</span> </span>&#123; </span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">int</span> i = <span class="number">0</span>; </span><br><span class="line">  synchronized&#123; </span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">cout</span> &lt;&lt; <span class="string">"Not interleaved \n"</span>; </span><br><span class="line">    ++i; </span><br><span class="line">    <span class="keyword">return</span> i;  </span><br><span class="line">  &#125; </span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">  <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;<span class="built_in">std</span>::thread&gt; v(<span class="number">10</span>); </span><br><span class="line">  <span class="keyword">for</span>(<span class="keyword">auto</span>&amp; t: v) </span><br><span class="line">    t = <span class="built_in">std</span>::thread([]&#123; <span class="keyword">for</span>(<span class="keyword">int</span> n = <span class="number">0</span>; n &lt; <span class="number">10</span>; ++n) func(); &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Task-blocks"><a href="#Task-blocks" class="headerlink" title="Task blocks"></a>Task blocks</h3><p>任务区实现了fork-join范式，如图：</p>
+<p><img src="/concurrency-in-cpp-2/ForkJoin.png" alt="ForkJoin"></p>
+<p>通过在任务区使用关键字<code>run</code>你可以fork新的任务，这些任务在离开作用域时会自动join。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Func&gt; </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">traverse</span><span class="params">(node&amp; n, Func &amp;&amp; f)</span></span>&#123; </span><br><span class="line">    <span class="keyword">int</span> left = <span class="number">0</span>, right = <span class="number">0</span>; </span><br><span class="line">    define_task_block(                 </span><br><span class="line">        [&amp;](task_block&amp; tb)&#123; </span><br><span class="line">            <span class="keyword">if</span> (n.left) tb.run([&amp;]&#123; left = traverse(*n.left, f); &#125;); </span><br><span class="line">            <span class="keyword">if</span> (n.right) tb.run([&amp;]&#123; right = traverse(*n.right, f); &#125;);</span><br><span class="line">         &#125;</span><br><span class="line">    );                                                         </span><br><span class="line">    <span class="keyword">return</span> f(n) + left + right; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="C-23"><a href="#C-23" class="headerlink" title="C++23"></a>C++23</h2><h3 id="Executors"><a href="#Executors" class="headerlink" title="Executors"></a>Executors</h3><p><code>Executors</code>是C++中执行代码的基本单元的一种抽象，就像容器(containers)中的allocators一样。</p>
+<p><code>Executors</code>定义了一组关于何时何地如何执行函数对象的一组规则。</p>
+<ul>
+<li>Where——函数对象可能在内部或外部的处理器上运行，执行的结果从内部或外部处理器中返回；</li>
+<li>When——函数对象可能立即执行，也可能遵从指定的安排。</li>
+<li>How——函数对象可能在CPU或GPU上执行，甚至可能以一种矢量化的方式执行。</li>
+</ul>
+<p>作为一种基础工具，本文中提到的C++并行和并发特性都非常依赖于<code>Executors</code>，甚至在未来的网络库中也可以见到<code>Executors</code>的身影(有生之年希望见到std::asio)。</p>
+<p><code>Executors</code>提供的抽象提供了如下特性：</p>
+<ul>
+<li>批处理有助于平衡小型函数对象的调用代价。</li>
+<li>使得函数对象能够在不同的上下文执行并返回结果。</li>
+<li>调度序列化。无论是先进先出或者后进先出队列，还是优先级或者时间约束，函数对象的调用顺序的各种调度模式都可以适应。</li>
+<li>函数对象的执行与具体的计算机资源绑定，而且能够实现延迟或者取消。</li>
+<li>…</li>
+</ul>
+<p>一些例子:</p>
+<ul>
+<li>std::async</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// get an executor through some means</span></span><br><span class="line">my_executor_type my_executor = ...</span><br><span class="line"></span><br><span class="line"><span class="comment">// launch an async using my executor</span></span><br><span class="line"><span class="keyword">auto</span> future = <span class="built_in">std</span>::async(my_executor, [] &#123;</span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">cout</span> &lt;&lt; <span class="string">"Hello world, from a new execution agent!"</span> &lt;&lt; <span class="built_in">std</span>::<span class="built_in">endl</span>;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>std::for_each</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// get an executor through some means</span></span><br><span class="line">my_executor_type my_executor = ...</span><br><span class="line"></span><br><span class="line"><span class="comment">// execute a parallel for_each "on" my executor</span></span><br><span class="line"><span class="built_in">std</span>::for_each(<span class="built_in">std</span>::execution::par.on(my_executor),</span><br><span class="line">              data.begin(), data.end(), func);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>static_thread_pool</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// create a thread pool with 4 threads</span></span><br><span class="line"><span class="function">static_thread_pool <span class="title">pool</span><span class="params">(<span class="number">4</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// get an executor from the thread pool</span></span><br><span class="line"><span class="keyword">auto</span> exec = pool.executor();</span><br><span class="line"></span><br><span class="line"><span class="comment">// use the executor on some long-running task</span></span><br><span class="line"><span class="keyword">auto</span> task1 = long_running_task(exec);</span><br></pre></td></tr></table></figure>
+
+<h2 id="可用的拓展库"><a href="#可用的拓展库" class="headerlink" title="可用的拓展库"></a>可用的拓展库</h2><p>除开标准库，C++中有许多并行并发三方库可以使用。</p>
+<ul>
+<li><a href="https://www.boost.org/" target="_blank" rel="noopener">Boost</a></li>
+<li><a href="https://github.com/cpp-taskflow/cpp-taskflow" target="_blank" rel="noopener">Cpp-Taskflow</a></li>
+<li><a href="https://docs.microsoft.com/en-us/cpp/parallel/concrt/parallel-patterns-library-ppl?view=vs-2019" target="_blank" rel="noopener">Parallel Patterns Library (PPL)</a></li>
+<li><a href="https://docs.microsoft.com/en-us/cpp/parallel/concrt/asynchronous-agents-library?view=vs-2019" target="_blank" rel="noopener">Asynchronous Agents Library</a></li>
+<li><a href="https://docs.microsoft.com/en-us/cpp/parallel/amp/cpp-amp-overview?view=vs-2019" target="_blank" rel="noopener">C++ Accelerated Massive Parallelism (C++ AMP)</a></li>
+</ul>
+<p>附录：[C++ Concurrency In Action.pdf](C++ Concurrency In Action.pdf “下载”)</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Language/" rel="tag"># Language</a>
+          
+            <a href="/tags/程序语言/" rel="tag"># 程序语言</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/21/concurrency-in-cpp-1/" rel="next" title="Concurrency In Cpp(1)">
+                <i class="fa fa-chevron-left"></i> Concurrency In Cpp(1)
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/06/24/I-See-a-Monad-in-Your-Future/" rel="prev" title="《I See a Monad in Your Future》翻译">
+                《I See a Monad in Your Future》翻译 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDkwNC8yMTQyNg=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Wkkkkk</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">32</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#工具分类"><span class="nav-text">工具分类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C-17"><span class="nav-text">C++17</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C-20"><span class="nav-text">C++20</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C-23"><span class="nav-text">C++23</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#可用的拓展库"><span class="nav-text">可用的拓展库</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-fas fa-heartbeat"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wkkkkk</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-user"></i>
+    </span>
+    <span class="site-uv" title="总访客量">
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+    </span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+  
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-eye"></i>
+    </span>
+    <span class="site-pv" title="总访问量">
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+    <script>
+  window.livereOptions = {
+    refer: '2019/06/24/concurrency-in-cpp-2/'
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+</script>
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

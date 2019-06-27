@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="什么是数据抽象数据抽象(data abstraction)是与面向对象(object-oriented)并列的一种编程范式(programming paradigm)。说“数据抽象”或许显得陌生，它的另外一个名字“抽象数据类型/abstract data type/ADT”想必如雷贯耳。">
+<meta name="keywords" content="Language,程序语言">
+<meta property="og:type" content="article">
+<meta property="og:title" content="值语义和数据抽象（二）">
+<meta property="og:url" content="http://wkkkkk.github.io/2019/05/21/value-semantics-and-data-abstraction-2/index.html">
+<meta property="og:site_name" content="Wkkkkk">
+<meta property="og:description" content="什么是数据抽象数据抽象(data abstraction)是与面向对象(object-oriented)并列的一种编程范式(programming paradigm)。说“数据抽象”或许显得陌生，它的另外一个名字“抽象数据类型/abstract data type/ADT”想必如雷贯耳。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://wkkkkk.github.io/value-semantics-and-data-abstraction-2/object-ram-distribution.png">
+<meta property="og:image" content="http://wkkkkk.github.io/value-semantics-and-data-abstraction-2/object-ram-distribution-in-java.png">
+<meta property="og:updated_time" content="2019-06-27T11:59:20.028Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="值语义和数据抽象（二）">
+<meta name="twitter:description" content="什么是数据抽象数据抽象(data abstraction)是与面向对象(object-oriented)并列的一种编程范式(programming paradigm)。说“数据抽象”或许显得陌生，它的另外一个名字“抽象数据类型/abstract data type/ADT”想必如雷贯耳。">
+<meta name="twitter:image" content="http://wkkkkk.github.io/value-semantics-and-data-abstraction-2/object-ram-distribution.png">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Wkkkkk" type="application/atom+xml">
+
+
+
+  
+  
+  <link rel="canonical" href="http://wkkkkk.github.io/2019/05/21/value-semantics-and-data-abstraction-2/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>值语义和数据抽象（二） | Wkkkkk</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Wkkkkk</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://wkkkkk.github.io/2019/05/21/value-semantics-and-data-abstraction-2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Wkkkkk">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wkkkkk">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">值语义和数据抽象（二）
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+			
+          <span class="post-time">
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-05-21 20:18:12" itemprop="dateCreated datePublished" datetime="2019-05-21T20:18:12+08:00">2019-05-21</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-27 19:59:20" itemprop="dateModified" datetime="2019-06-27T19:59:20+08:00">2019-06-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="post-meta-item-icon">
+            <i class="fa fa-eye"></i>
+             阅读次数： 
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="什么是数据抽象"><a href="#什么是数据抽象" class="headerlink" title="什么是数据抽象"></a>什么是数据抽象</h2><p>数据抽象(data abstraction)是与面向对象(object-oriented)并列的一种编程范式(programming paradigm)。说“数据抽象”或许显得陌生，它的另外一个名字“抽象数据类型/abstract data type/ADT”想必如雷贯耳。</p>
+<a id="more"></a>
+
+<p>“支持数据抽象”一直是C++语言的设计目标，Bjarne Stroustrup 在他的《The C++ Programming Language》中写道：</p>
+<p>C++ is a general-purpose programming language with a bias towards systems programming that</p>
+<ul>
+<li>is a better C,</li>
+<li>supports data abstraction,</li>
+<li>supports object-oriented programming, and</li>
+<li>supports generic programming.</li>
+</ul>
+<p>数据抽象是C++相对于C的一大优势。</p>
+<p>作为语言的设计者，Bjarne 把数据抽象作为C++的四个子语言之一。这个观点不是普遍接受的，比如作为语言的使用者，Scott Meyers 在《Effective C++ 第三版》中把 C++ 分为四个子语言：C、Object-Oriented C++、Template C++、STL。在 Scott Meyers 的分类法中，就没有出现数据抽象，而是归入了 object-oriented C++。</p>
+<h2 id="那么到底什么是数据抽象？"><a href="#那么到底什么是数据抽象？" class="headerlink" title="那么到底什么是数据抽象？"></a>那么到底什么是数据抽象？</h2><p>简单的说，数据抽象是用来描述数据结构的。数据抽象就是 ADT。一个 ADT 主要表现为它支持的一些操作，比方说 stack.push、stack.pop，这些操作应该具有明确的时间和空间复杂度。另外，一个 ADT 可以隐藏其实现细节，比方说 stack 既可以用动态数组实现，又可以用链表实现。</p>
+<p>按照这个定义，数据抽象和基于对象(object-based)很像，那么它们的区别在哪里？语义不同。ADT 通常是值语义，而 object-based 是对象语言。ADT class 是可以拷贝的，拷贝之后的 instance 与原 instance 脱离关系。</p>
+<p>比方说 stack a; a.push(10); stack b = a; b.pop(); 这时候 a 里仍然有元素 10。</p>
+<h2 id="C-标准库中的数据抽象"><a href="#C-标准库中的数据抽象" class="headerlink" title="C++ 标准库中的数据抽象"></a>C++ 标准库中的数据抽象</h2><p>C++ 标准库里  complex&lt;&gt; 、pair&lt;&gt;、vector&lt;&gt;、list&lt;&gt;、map&lt;&gt;、set&lt;&gt;、string、stack、queue 都是数据抽象的例子。vector 是动态数组，它的主要操作有 push_back()、size()、begin()、end() 等等，这些操作不仅含义清晰，而且计算复杂度都是常数。类似的，list 是链表，map 是有序关联数组，set 是有序集合、stack 是 FILO 栈、queue是 FIFO 队列。“动态数组”、“链表”、“有序集合”、“关联数组”、“栈”、“队列”都是定义明确（操作、复杂度）的抽象数据类型。</p>
+<h2 id="数据抽象所需的语言设施"><a href="#数据抽象所需的语言设施" class="headerlink" title="数据抽象所需的语言设施"></a>数据抽象所需的语言设施</h2><p>不是每个语言都支持数据抽象，下面简要列出“数据抽象”所需的语言设施。</p>
+<h3 id="支持数据聚合"><a href="#支持数据聚合" class="headerlink" title="支持数据聚合"></a>支持数据聚合</h3><p>数据聚合 data aggregation，或者 value aggregates。即定义 C-style struct，把有关数据放到同一个 struct 里。FORTRAN77没有这个能力，FORTRAN77 无法实现 ADT。这种数据聚合 struct 是 ADT 的基础，struct List、struct HashTable 等能把链表和哈希表结构的数据放到一起，而不是用几个零散的变量来表示它。</p>
+<h3 id="全局函数与重载"><a href="#全局函数与重载" class="headerlink" title="全局函数与重载"></a>全局函数与重载</h3><p>例如我定义了 complex，那么我可以同时定义 complex sin(const complex&amp; x); 和 complex exp(const complex&amp; x); 等等全局函数来实现复数的三角函数和指数运算。sin 和 exp 不是 complex 的成员，而是全局函数 double sin(double) 和 double exp(double) 的重载。这样能让 double a = sin(b); 和 complex a = sin(b); 具有相同的代码形式，而不必写成 complex a = b.sin();。</p>
+<p>C 语言可以定义全局函数，但是不能与已有的函数重名，也就没有重载。Java 没有全局函数，而且 Math class 是封闭的，并不能往其中添加 sin(Complex)。</p>
+<h3 id="成员函数与-private-数据"><a href="#成员函数与-private-数据" class="headerlink" title="成员函数与 private 数据"></a>成员函数与 private 数据</h3><p>数据也可以声明为 private，防止外界意外修改。不是每个 ADT 都适合把数据声明为 private，例如 complex、point、pair&lt;&gt; 这样的 ADT 使用 public data 更加合理。</p>
+<p>要能够在 struct 里定义操作，而不是只能用全局函数来操作 struct。比方说 vector 有 push_back() 操作，push_back 是 vector 的一部分，它必须直接修改 vector 的 private data members，因此无法定义为全局函数。</p>
+<p>这两点其实就是定义 class，现在的语言都能直接支持，C 语言除外。</p>
+<h3 id="拷贝控制-copy-control"><a href="#拷贝控制-copy-control" class="headerlink" title="拷贝控制(copy control)"></a>拷贝控制(copy control)</h3><p>copy control 是拷贝 stack a; stack b = a; 和赋值 stack b; b = a; 的合称。</p>
+<p>当拷贝一个 ADT 时会发生什么？比方说拷贝一个 stack，是不是应该把它的每个元素按值拷贝到新 stack？</p>
+<p>如果语言支持显示控制对象的生命期（比方说C++的确定性析构），而 ADT 用到了动态分配的内存，那么 copy control 更为重要，不然如何防止访问已经失效的对象？</p>
+<p>由于 C++ class 是值语义，copy control 是实现深拷贝的必要手段。而且 ADT 用到的资源只涉及动态分配的内存，所以深拷贝是可行的。相反，object-based 编程风格中的 class 往往代表某样真实的事物（Employee、Account、File 等等），深拷贝无意义。</p>
+<p>C 语言没有 copy control，也没有办法防止拷贝，一切要靠程序员自己小心在意。FILE* 可以随意拷贝，但是只要关闭其中一个 copy，其他 copies 也都失效了，跟空悬指针一般。整个 C 语言对待资源（malloc 得到的内存，open() 打开的文件，socket() 打开的连接）都是这样，用整数或指针来代表（即“句柄”）。而整数和指针类型的“句柄”是可以随意拷贝的，很容易就造成重复释放、遗漏释放、使用已经释放的资源等等常见错误。这方面 C++ 是一个显著的进步，boost::noncopyable 是 boost 里最值得推广的库。</p>
+<h3 id="操作符重载"><a href="#操作符重载" class="headerlink" title="操作符重载"></a>操作符重载</h3><p>如果要写动态数组，我们希望能像使用内置数组一样使用它，比如支持下标操作。C++可以重载 operator[] 来做到这一点。</p>
+<p>如果要写复数，我们系统能像使用内置的 double 一样使用它，比如支持加减乘除。C++ 可以重载 operator+ 等操作符来做到这一点。</p>
+<p>如果要写日期时间，我们希望它能直接用大于小于号来比较先后，用 == 来判断是否相等。C++ 可以重载 operator&lt; 等操作符来做到这一点。</p>
+<p>这要求语言能重载成员与全局操作符。操作符重载是 C++ 与生俱来的特性，1984 年的 CFront E 就支持操作符重载，并且提供了一个 complex class，这个 class 与目前标准库的 complex&lt;&gt; 在使用上无区别。</p>
+<p>如果没有操作符重载，那么用户定义的ADT与内置类型用起来就不一样（想想有的语言要区分 == 和 equals，代码写起来实在很累赘）。Java 里有 BigInteger，但是 BigInteger 用起来和普通 int/long 大不相同：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> BigInteger <span class="title">mean</span><span class="params">(BigInteger x, BigInteger y)</span> </span>&#123;</span><br><span class="line">    BigInteger two = BigInteger.valueOf(<span class="number">2</span>);</span><br><span class="line">    <span class="keyword">return</span> x.add(y).divide(two);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">long</span> <span class="title">mean</span><span class="params">(<span class="keyword">long</span> x, <span class="keyword">long</span> y)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (x + y) / <span class="number">2</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当然，操作符重载容易被滥用，因为这样显得很酷。我认为只在 ADT 表示一个“数值”的时候才适合重载加减乘除，其他情况下用具名函数为好，因此 muduo::Timestamp 只重载了关系操作符，没有重载加减操作符。另外一个理由见《C++ 工程实践(3)：采用有利于版本管理的代码格式》。</p>
+<h3 id="效率无损"><a href="#效率无损" class="headerlink" title="效率无损"></a>效率无损</h3><p>“抽象”不代表低效。在 C++ 中，提高抽象的层次并不会降低效率。不然的话，人们宁可在低层次上编程，而不愿使用更便利的抽象，数据抽象也就失去了市场。后面我们将看到一个具体的例子。</p>
+<h3 id="模板与泛型"><a href="#模板与泛型" class="headerlink" title="模板与泛型"></a>模板与泛型</h3><p>如果我写了一个 int vector，那么我不想为 doule 和 string 再实现一遍同样的代码。我应该把 vector 写成 template，然后用不同的类型来具现化它，从而得到 vector<int>、vector<double>、vector<complex>、vector<string> 等等具体类型。</string></complex></double></int></p>
+<p>不是每个 ADT 都需要这种泛型能力，一个 Date class 就没必要让用户指定该用哪种类型的整数，int32_t 足够了。</p>
+<p>根据上面的要求，不是每个面向对象语言都能原生支持数据抽象，也说明数据抽象不是面向对象的子集。</p>
+<h2 id="数据抽象的例子"><a href="#数据抽象的例子" class="headerlink" title="数据抽象的例子"></a>数据抽象的例子</h2><p>下面我们看看数值模拟 N-body 问题的两个程序，前一个用 C 语言，后一个是 C++ 的。两个程序使用了相同的算法。</p>
+<h3 id="C语言版"><a href="#C语言版" class="headerlink" title="C语言版"></a>C语言版</h3><p>planet 保存与行星位置、速度、质量，位置和速度各有三个分量，程序模拟几大行星在三维空间中受引力支配的运动。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">planet</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">double</span> x, y, z;</span><br><span class="line">  <span class="keyword">double</span> vx, vy, vz;</span><br><span class="line">  <span class="keyword">double</span> mass;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">advance</span><span class="params">(<span class="keyword">int</span> nbodies, struct planet *bodies, <span class="keyword">double</span> dt)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nbodies; i++)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">planet</span> *<span class="title">p1</span> = &amp;(<span class="title">bodies</span>[<span class="title">i</span>]);</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> j = i + <span class="number">1</span>; j &lt; nbodies; j++)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="class"><span class="keyword">struct</span> <span class="title">planet</span> *<span class="title">p2</span> = &amp;(<span class="title">bodies</span>[<span class="title">j</span>]);</span></span><br><span class="line">      <span class="keyword">double</span> dx = p1-&gt;x - p2-&gt;x;</span><br><span class="line">      <span class="keyword">double</span> dy = p1-&gt;y - p2-&gt;y;</span><br><span class="line">      <span class="keyword">double</span> dz = p1-&gt;z - p2-&gt;z;</span><br><span class="line">      <span class="keyword">double</span> distance_squared = dx * dx + dy * dy + dz * dz;</span><br><span class="line">      <span class="keyword">double</span> distance = <span class="built_in">sqrt</span>(distance_squared);</span><br><span class="line">      <span class="keyword">double</span> mag = dt / (distance * distance_squared);</span><br><span class="line">      p1-&gt;vx -= dx * p2-&gt;mass * mag;</span><br><span class="line">      p1-&gt;vy -= dy * p2-&gt;mass * mag;</span><br><span class="line">      p1-&gt;vz -= dz * p2-&gt;mass * mag;</span><br><span class="line">      p2-&gt;vx += dx * p1-&gt;mass * mag;</span><br><span class="line">      p2-&gt;vy += dy * p1-&gt;mass * mag;</span><br><span class="line">      p2-&gt;vz += dz * p1-&gt;mass * mag;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nbodies; i++)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">planet</span> * <span class="title">p</span> = &amp;(<span class="title">bodies</span>[<span class="title">i</span>]);</span></span><br><span class="line">    p-&gt;x += dt * p-&gt;vx;</span><br><span class="line">    p-&gt;y += dt * p-&gt;vy;</span><br><span class="line">    p-&gt;z += dt * p-&gt;vz;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中最核心的算法是 advance() 函数实现的数值积分，它根据各个星球之间的距离和引力，算出加速度，再修正速度，然后更新星球的位置。这个 naive 算法的复杂度是 O(N^2)。</p>
+<h3 id="C-数据抽象版"><a href="#C-数据抽象版" class="headerlink" title="C++ 数据抽象版"></a>C++ 数据抽象版</h3><p>首先定义 Vector3 这个抽象，代表三维向量，它既可以是位置，有可以是速度。本处略去了 Vector3 的操作符重载，Vector3 支持常见的向量加减乘除运算。</p>
+<p>然后定义 Planet 这个抽象，代表一个行星，它有两个 Vector3 成员：位置和速度。</p>
+<p>需要说明的是，按照语义，Vector3 是数据抽象，而 Planet 是 object-based.</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Vector3</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Vector3(<span class="keyword">double</span> x, <span class="keyword">double</span> y, <span class="keyword">double</span> z) : x(x), y(y), z(z) &#123;&#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">double</span> x;</span><br><span class="line">  <span class="keyword">double</span> y;</span><br><span class="line">  <span class="keyword">double</span> z;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Planet</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Planet(<span class="keyword">const</span> Vector3&amp; position, <span class="keyword">const</span> Vector3&amp; velocity, <span class="keyword">double</span> mass)</span><br><span class="line">    : position(position), velocity(velocity), mass(mass) &#123;&#125;</span><br><span class="line"></span><br><span class="line">  Vector3 position;</span><br><span class="line">  Vector3 velocity;</span><br><span class="line">  <span class="keyword">const</span> <span class="keyword">double</span> mass;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>相同功能的 advance() 代码简短得多，而且更容易验证其正确性。（想想如果把 C 语言版的 advance() 中的 vx、vy、vz、dx、dy、dz 写错位了，这种错误较难发现。）</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">advance</span><span class="params">(<span class="keyword">int</span> nbodies, Planet* bodies, <span class="keyword">double</span> delta_time)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (Planet* p1 = bodies; p1 != bodies + nbodies; ++p1)</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">for</span> (Planet* p2 = p1 + <span class="number">1</span>; p2 != bodies + nbodies; ++p2)</span><br><span class="line">    &#123;</span><br><span class="line">      Vector3 difference = p1-&gt;position - p2-&gt;position;</span><br><span class="line">      <span class="keyword">double</span> distance_squared = magnitude_squared(difference);</span><br><span class="line">      <span class="keyword">double</span> distance = <span class="built_in">std</span>::<span class="built_in">sqrt</span>(distance_squared);</span><br><span class="line">      <span class="keyword">double</span> magnitude = delta_time / (distance * distance_squared);</span><br><span class="line">      p1-&gt;velocity -= difference * p2-&gt;mass * magnitude;</span><br><span class="line">      p2-&gt;velocity += difference * p1-&gt;mass * magnitude;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">for</span> (Planet* p = bodies; p != bodies + nbodies; ++p)</span><br><span class="line">  &#123;</span><br><span class="line">    p-&gt;position += delta_time * p-&gt;velocity;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>性能上，尽管 C++ 使用了更高层的抽象 Vector3，但它的性能和 C 语言一样快。看看 memory layout 就会明白：</p>
+<p>C struct 的成员是连续存储的，struct 数组也是连续的。</p>
+<p><img src="/value-semantics-and-data-abstraction-2/object-ram-distribution.png" alt="object-ram-distribution"></p>
+<p>C++ 尽管定义了了 Vector3 这个抽象，它的内存布局并没有改变，Planet 的布局和 C planet 一模一样，Planet[] 的布局也和 C 数组一样。</p>
+<p>另一方面，C++ 的 inline 函数在这里也起了巨大作用，我们可以放心地调用 Vector3::operator+=() 等操作符，编译器会生成和 C 一样高效的代码。</p>
+<p>不是每个编程语言都能做到在提升抽象的时候不影响性能，来看看 Java 的内存布局。</p>
+<p>如果我们用 class Vector3、class Planet、Planet[] 的方式写一个 Java 版的 N-body 程序，内存布局将会是：</p>
+<p><img src="/value-semantics-and-data-abstraction-2/object-ram-distribution-in-java.png" alt="object-ram-distribution-in-java"></p>
+<p>这样大大降低了 memory locality，有兴趣的读者可以对比 Java 和 C++ 的实现效率。</p>
+<p>注：这里的 N-body 算法只为比较语言之间的性能与编程的便利性，真正科研中用到的 N-body 算法会使用更高级和底层的优化，复杂度是O(N log N)，在大规模模拟时其运行速度也比本 naive 算法快得多。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>数据抽象是C++的重要抽象手段，适合封装“数据”，它的语义简单，容易使用。数据抽象能简化代码书写，减少偶然错误。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Language/" rel="tag"># Language</a>
+          
+            <a href="/tags/程序语言/" rel="tag"># 程序语言</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/05/20/value-semantics-and-data-abstraction-1/" rel="next" title="值语义和数据抽象（一）">
+                <i class="fa fa-chevron-left"></i> 值语义和数据抽象（一）
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/05/22/RAII-and-smart-pointer/" rel="prev" title="RAII and Smart Pointer">
+                RAII and Smart Pointer <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDkwNC8yMTQyNg=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Wkkkkk</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">32</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#什么是数据抽象"><span class="nav-text">什么是数据抽象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#那么到底什么是数据抽象？"><span class="nav-text">那么到底什么是数据抽象？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C-标准库中的数据抽象"><span class="nav-text">C++ 标准库中的数据抽象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据抽象所需的语言设施"><span class="nav-text">数据抽象所需的语言设施</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据抽象的例子"><span class="nav-text">数据抽象的例子</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-fas fa-heartbeat"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wkkkkk</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-user"></i>
+    </span>
+    <span class="site-uv" title="总访客量">
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+    </span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+  
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-eye"></i>
+    </span>
+    <span class="site-pv" title="总访问量">
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+    <script>
+  window.livereOptions = {
+    refer: '2019/05/21/value-semantics-and-data-abstraction-2/'
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+</script>
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

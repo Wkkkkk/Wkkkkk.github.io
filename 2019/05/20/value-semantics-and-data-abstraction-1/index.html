@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="什么是值语义值语义(value semantics)指的是对象的拷贝与原对象无关，就像拷贝 int 一样。C++ 的内置类型(bool/int/double/char)都是值语义，标准库里的 complex&amp;lt;&amp;gt; 、pair&amp;lt;&amp;gt;、vector&amp;lt;&amp;gt;、map&amp;lt;&amp;gt;、string 等等类型也都是值语意，拷贝之后就与原对象脱离关系。同样，Java 语言的 pri">
+<meta name="keywords" content="Language,程序语言">
+<meta property="og:type" content="article">
+<meta property="og:title" content="值语义和数据抽象（一）">
+<meta property="og:url" content="http://wkkkkk.github.io/2019/05/20/value-semantics-and-data-abstraction-1/index.html">
+<meta property="og:site_name" content="Wkkkkk">
+<meta property="og:description" content="什么是值语义值语义(value semantics)指的是对象的拷贝与原对象无关，就像拷贝 int 一样。C++ 的内置类型(bool/int/double/char)都是值语义，标准库里的 complex&amp;lt;&amp;gt; 、pair&amp;lt;&amp;gt;、vector&amp;lt;&amp;gt;、map&amp;lt;&amp;gt;、string 等等类型也都是值语意，拷贝之后就与原对象脱离关系。同样，Java 语言的 pri">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-27T11:59:20.028Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="值语义和数据抽象（一）">
+<meta name="twitter:description" content="什么是值语义值语义(value semantics)指的是对象的拷贝与原对象无关，就像拷贝 int 一样。C++ 的内置类型(bool/int/double/char)都是值语义，标准库里的 complex&amp;lt;&amp;gt; 、pair&amp;lt;&amp;gt;、vector&amp;lt;&amp;gt;、map&amp;lt;&amp;gt;、string 等等类型也都是值语意，拷贝之后就与原对象脱离关系。同样，Java 语言的 pri">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Wkkkkk" type="application/atom+xml">
+
+
+
+  
+  
+  <link rel="canonical" href="http://wkkkkk.github.io/2019/05/20/value-semantics-and-data-abstraction-1/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>值语义和数据抽象（一） | Wkkkkk</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Wkkkkk</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://wkkkkk.github.io/2019/05/20/value-semantics-and-data-abstraction-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Wkkkkk">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wkkkkk">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">值语义和数据抽象（一）
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+			
+          <span class="post-time">
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-05-20 20:18:12" itemprop="dateCreated datePublished" datetime="2019-05-20T20:18:12+08:00">2019-05-20</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-27 19:59:20" itemprop="dateModified" datetime="2019-06-27T19:59:20+08:00">2019-06-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="post-meta-item-icon">
+            <i class="fa fa-eye"></i>
+             阅读次数： 
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="什么是值语义"><a href="#什么是值语义" class="headerlink" title="什么是值语义"></a>什么是值语义</h2><p>值语义(value semantics)指的是对象的拷贝与原对象无关，就像拷贝 int 一样。C++ 的内置类型(bool/int/double/char)都是值语义，标准库里的 complex&lt;&gt; 、pair&lt;&gt;、vector&lt;&gt;、map&lt;&gt;、string 等等类型也都是值语意，拷贝之后就与原对象脱离关系。同样，Java 语言的 primitive types 也是值语义。</p>
+<a id="more"></a>
+
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">std</span>::<span class="built_in">string</span> a = <span class="string">"Hello World"</span>;</span><br><span class="line"><span class="built_in">std</span>::<span class="built_in">string</span> b = a;</span><br></pre></td></tr></table></figure>
+
+<p>此时 a 和 b 指向的是并不是同一个对象，a、b之间并不相关。</p>
+<p>与值语义对应的是“对象语义/object semantics”，或者叫做引用语义(reference semantics)。对象语义指的是面向对象意义下的对象，对象拷贝是禁止的。例如 C++ 标准库里的 thread 是对象语义，拷贝 thread 是无意义的，也是被禁止的：因为 thread 代表线程，拷贝一个 thread 对象并不能让系统增加一个一模一样的线程。同样的道理，拷贝一个 Employee 对象是没有意义的，一个雇员不会变成两个雇员，他也不会领两份薪水。拷贝 TcpConnection 对象也没有意义，系统里边只有一个 TCP 连接，拷贝 TcpConnection  对象不会让我们拥有两个连接。Printer 也是不能拷贝的，系统只连接了一个打印机，拷贝 Printer 并不能凭空增加打印机。凡此总总，面向对象意义下的“对象”是 non-copyable。</p>
+<p>Java 里边的 class 对象都是对象语义/引用语义。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ArrayList&lt;Integer&gt; a = <span class="keyword">new</span> ArrayList&lt;Integer&gt;(); </span><br><span class="line">ArrayList&lt;Integer&gt; b = a;</span><br></pre></td></tr></table></figure>
+
+<p>那么 a 和 b 指向的是同一个 ArrayList 对象，修改 a 同时也会影响 b。</p>
+<p>值得补充的是，值语义、引用语义与不可变性( immutable) 无关。Java 有 value object 一说，按(PoEAA 486)的定义，它实际上是 immutable object，例如 String、Integer、BigInteger 等等。C++中的值语义对象也可以是 mutable，比如 complex&lt;&gt;、pair&lt;&gt;、vector&lt;&gt;、map&lt;&gt;、string 都是可以修改的。</p>
+<p>值语义的对象也不一定是POD，例如 string 就不是 POD，但它是值语义的。</p>
+<blockquote>
+<p><em>POD</em> stands for <em>Plain Old Data</em> - that is, a class (whether defined with the keyword <code>struct</code> or the keyword <code>class</code>) without constructors, destructors and virtual members functions.</p>
+</blockquote>
+<h2 id="值语义与生命期"><a href="#值语义与生命期" class="headerlink" title="值语义与生命期"></a>值语义与生命期</h2><p>值语义的一个巨大好处是生命期管理很简单，就跟 int 一样——你不需要操心 int 的生命期。值语义的对象要么是 stack object，或者直接作为其他 object 的成员，因此我们不用担心它的生命期（一个函数使用自己stack上的对象，一个成员函数使用自己的数据成员对象）。相反，对象语义的 object 由于不能拷贝，我们只能通过指针或引用来使用它。</p>
+<p>一旦使用指针和引用来操作对象，那么就要担心所指的对象是否已被释放，这一度是 C++ 程序 bug 的一大来源。此外，由于 C++ 只能通过指针或引用来获得多态性，那么在C++里从事基于继承和多态的面向对象编程有其本质的困难——资源管理。如果不使用 smart pointer，用 C++ 做面向对象编程将会困难重重。</p>
+<h2 id="值语义与标准库"><a href="#值语义与标准库" class="headerlink" title="值语义与标准库"></a>值语义与标准库</h2><p>C++ 要求凡是能放入标准容器的类型必须具有值语义。准确地说：type 必须是 SGIAssignable concept 的 model。但是，由 于C++ 编译器会为 class 默认提供 copy constructor 和 assignment operator，因此除非明确禁止，否则 class 总是可以作为标准库的元素类型——尽管程序可以编译通过，但是隐藏了资源管理方面的 bug。</p>
+<p>因此，在写一个 class 的时候，需要考虑到对象的拷贝与移动，默认让它继承 boost::noncopyable，几乎总是正确的。</p>
+<p>在现代 C++ 中，一般不需要自己编写 copy constructor 或 assignment operator，因为只要每个数据成员都具有值语义的话，编译器自动生成的 member-wise copying&amp;assigning 就能正常工作；如果以 smart ptr 为成员来持有其他对象，那么就能自动启用或禁用 copying&amp;assigning。</p>
+<p>例外：编写 HashMap 这类底层库时还是需要自己实现 copy control。</p>
+<h2 id="值语义与C-语言"><a href="#值语义与C-语言" class="headerlink" title="值语义与C++语言"></a>值语义与C++语言</h2><p>C++ 的 class 本质上是值语义的，这才会出现 object slicing 这种语言独有的问题，也才会需要程序员注意 pass-by-value 和 pass-by-const-reference 的取舍。在其他面向对象编程语言中，这都不需要费脑筋。</p>
+<p>值语义是C++语言的三大约束之一，C++ 的设计初衷是让用户定义的类型(class)能像内置类型(int)一样工作，具有同等的地位。为此C++做了以下设计（妥协）：</p>
+<ul>
+<li><p>class 的 layout 与 C struct 一样，没有额外的开销。定义一个“只包含一个 int 成员的 class ”的对象开销和定义一个 int 一样。甚至 class data member 都默认是 uninitialized，因为函数局部的 int 是 uninitialized。</p>
+</li>
+<li><p>class 可以在 stack 上创建，也可以在 heap 上创建。因为 int 可以是 stack variable。class 的数组就是一个个 class 对象挨着，没有额外的 indirection。因为 int 数组就是这样。</p>
+</li>
+<li><p>编译器会为 class 默认生成 copy constructor 和 assignment operator。其他语言没有 copy constructor 一说，也不允许重载 assignment operator。C++ 的对象默认是可以拷贝的，这是一个尴尬的特性。</p>
+</li>
+<li><p>当 class type 传入函数时，默认是 make a copy （除非参数声明为 reference）。因为把 int 传入函数时是 make a copy。当函数返回一个 class type 时，只能通过 make a copy（C++ 不得不定义 RVO 来解决性能问题）。因为函数返回 int 时是 make a copy。</p>
+</li>
+<li><p>以 class type 为成员时，数据成员是嵌入的。例如 pair&lt;complex<double>, size_t&gt; 的 layout 就是 complex<double> 挨着 size_t。</double></double></p>
+</li>
+</ul>
+<p>  这些设计在带来了性能上的好处（memory locality）之外，也为数据抽象奠定了基础……</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Language/" rel="tag"># Language</a>
+          
+            <a href="/tags/程序语言/" rel="tag"># 程序语言</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/05/19/hello-world/" rel="next" title="Summary">
+                <i class="fa fa-chevron-left"></i> Summary
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/05/21/value-semantics-and-data-abstraction-2/" rel="prev" title="值语义和数据抽象（二）">
+                值语义和数据抽象（二） <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDkwNC8yMTQyNg=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Wkkkkk</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">32</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#什么是值语义"><span class="nav-text">什么是值语义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#值语义与生命期"><span class="nav-text">值语义与生命期</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#值语义与标准库"><span class="nav-text">值语义与标准库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#值语义与C-语言"><span class="nav-text">值语义与C++语言</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-fas fa-heartbeat"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wkkkkk</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-user"></i>
+    </span>
+    <span class="site-uv" title="总访客量">
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+    </span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+  
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-eye"></i>
+    </span>
+    <span class="site-pv" title="总访问量">
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+    <script>
+  window.livereOptions = {
+    refer: '2019/05/20/value-semantics-and-data-abstraction-1/'
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+</script>
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

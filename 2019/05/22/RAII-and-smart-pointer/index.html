@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="堆栈本文谈一谈C++程序中变量存储的方式——堆和栈。 在C++程序中，每个线程都拥有各自的栈内存，用于局部变量的存储和构造，同时也保存了传递给函数的参数。它的工作方式非常像std::stack，参数入栈后，函数即可从栈顶取出它需要的参数；同样地，函数也可以将局部变量送入函数栈中，在返回时利用栈的特性依次自动析构（实际工作中，编译器优化和inline调用使得函数调用方式可能有所变化）。 堆上的内存由">
+<meta name="keywords" content="Language,程序语言">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RAII and Smart Pointer">
+<meta property="og:url" content="http://wkkkkk.github.io/2019/05/22/RAII-and-smart-pointer/index.html">
+<meta property="og:site_name" content="Wkkkkk">
+<meta property="og:description" content="堆栈本文谈一谈C++程序中变量存储的方式——堆和栈。 在C++程序中，每个线程都拥有各自的栈内存，用于局部变量的存储和构造，同时也保存了传递给函数的参数。它的工作方式非常像std::stack，参数入栈后，函数即可从栈顶取出它需要的参数；同样地，函数也可以将局部变量送入函数栈中，在返回时利用栈的特性依次自动析构（实际工作中，编译器优化和inline调用使得函数调用方式可能有所变化）。 堆上的内存由">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-27T11:59:19.641Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RAII and Smart Pointer">
+<meta name="twitter:description" content="堆栈本文谈一谈C++程序中变量存储的方式——堆和栈。 在C++程序中，每个线程都拥有各自的栈内存，用于局部变量的存储和构造，同时也保存了传递给函数的参数。它的工作方式非常像std::stack，参数入栈后，函数即可从栈顶取出它需要的参数；同样地，函数也可以将局部变量送入函数栈中，在返回时利用栈的特性依次自动析构（实际工作中，编译器优化和inline调用使得函数调用方式可能有所变化）。 堆上的内存由">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Wkkkkk" type="application/atom+xml">
+
+
+
+  
+  
+  <link rel="canonical" href="http://wkkkkk.github.io/2019/05/22/RAII-and-smart-pointer/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>RAII and Smart Pointer | Wkkkkk</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Wkkkkk</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://wkkkkk.github.io/2019/05/22/RAII-and-smart-pointer/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Wkkkkk">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wkkkkk">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">RAII and Smart Pointer
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+			
+          <span class="post-time">
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-05-22 20:43:36" itemprop="dateCreated datePublished" datetime="2019-05-22T20:43:36+08:00">2019-05-22</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-27 19:59:19" itemprop="dateModified" datetime="2019-06-27T19:59:19+08:00">2019-06-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="post-meta-item-icon">
+            <i class="fa fa-eye"></i>
+             阅读次数： 
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="堆栈"><a href="#堆栈" class="headerlink" title="堆栈"></a>堆栈</h2><p>本文谈一谈C++程序中变量存储的方式——堆和栈。</p>
+<p>在C++程序中，每个线程都拥有各自的栈内存，用于局部变量的存储和构造，同时也保存了传递给函数的参数。它的工作方式非常像<code>std::stack</code>，参数入栈后，函数即可从栈顶取出它需要的参数；同样地，函数也可以将局部变量送入函数栈中，在返回时利用栈的特性依次自动析构（实际工作中，编译器优化和inline调用使得函数调用方式可能有所变化）。</p>
+<p>堆上的内存由用户主动申请，不同线程共享堆上的资源。当程序申请内存时，操作系统会寻找内存中可用空间并提供给程序，系统不会主动释放这些资源（除非程序退出）。</p>
+<a id="more"></a>
+
+<p>一般来说，对栈上对象的操作会更快一些，因为它们一般都存在于CPU缓存中。但栈上的资源毕竟有限，分配相对较大的对象时，可能会出现栈溢出（Stack buffer overflow）。除非在栈上读取文件（例如图片），或有嵌套的函数调用，否则这样的问题很少遇到。在Linux系统中，下述命令可以查看栈空间的大小。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">ulimit</span> -s</span><br><span class="line">8192</span><br><span class="line"><span class="comment">#这表示8192Kb(8Mb)的栈空间</span></span><br></pre></td></tr></table></figure>
+
+<p>与栈上对象相对的，用<code>new</code>操作符创建的对象或者<code>malloc</code>申请的一块内存即位于堆上，当可用内存全部耗尽时，程序会抛出<code>std::bad_allo</code>异常。比起栈上有限的资源，堆上可以更自由地分配内存、创建对象；当然，这也对资源的管理提出了一些挑战。</p>
+<p>关于堆栈与内存地址排布，可以参考<a href="https://ncona.com/2018/03/stack-and-heap-memory-in-c/" target="_blank" rel="noopener">Stack and heap memory in C++</a>.</p>
+<h2 id="什么是RAII"><a href="#什么是RAII" class="headerlink" title="什么是RAII"></a>什么是RAII</h2><p>RAII是Resource Acquisition Is Initialization（wiki上面翻译成 “资源获取就是初始化”）的简称。它利用C++构造的对象最终会被销毁的原则，通过将对象和资源绑定，实现了一种自动管理资源、避免泄漏的方法。</p>
+<p>具体做法是使用一个对象，在其构造时获取对应的资源（比如：网络套接字、互斥锁、文件句柄和内存等等），在对象生命期内控制对资源的访问，使之始终保持有效，最后在对象析构的时候，释放构造时获取的资源。</p>
+<p>一组简单的例子：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt; </span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>; </span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span></span><br><span class="line"><span class="function"></span>&#123; </span><br><span class="line">    <span class="keyword">int</span> *testArray = <span class="keyword">new</span> <span class="keyword">int</span> [<span class="number">10</span>]; </span><br><span class="line">    <span class="comment">// Here, you can use the array </span></span><br><span class="line">    <span class="keyword">delete</span> [] testArray; </span><br><span class="line">    testArray = <span class="literal">NULL</span> ; </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述的例子非常简单，我们可以很轻松地管理申请的内存资源。但是如果程序很复杂的时候，需要为所有的new 分配的内存delete掉，导致极度臃肿，效率下降，更可怕的是，程序的可理解性和可维护性明显降低了，当操作增多时，处理资源释放的代码就会越来越多，越来越乱。如果某一个操作发生了异常而导致释放资源的语句没有被调用，怎么办？这个时候，RAII机制就可以派上用场了。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">FileHandle</span> &#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    FileHandle(<span class="keyword">char</span> <span class="keyword">const</span>* n, <span class="keyword">char</span> <span class="keyword">const</span>* a) &#123; p = fopen(n, a); &#125;</span><br><span class="line">    ~FileHandle() &#123; fclose(p); &#125;</span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="comment">// 禁止拷贝操作</span></span><br><span class="line">    FileHandle(FileHandle <span class="keyword">const</span>&amp;);</span><br><span class="line">    FileHandle&amp; <span class="keyword">operator</span>= (FileHandle <span class="keyword">const</span>&amp;);</span><br><span class="line">    FILE *p;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><code>FileHandle</code>类的构造函数调用<code>fopen()</code>获取资源，<code>FileHandle</code>类的析构函数调用<code>fclose()</code>释放资源。请注意，考虑到<code>FileHandle``对象代表一种资源，它并不具有拷贝语义，因此我们将拷贝构造函数和赋值运算符声明为私有成员。如果利用FileHandle</code>类的局部对象表示文件句柄资源，那么前面的<code>UseFile</code>函数便可简化为：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">UseFile</span><span class="params">(<span class="keyword">char</span> <span class="keyword">const</span>* fn)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">FileHandle <span class="title">file</span><span class="params">(fn, <span class="string">"r"</span>)</span></span>; </span><br><span class="line">    <span class="comment">// 在此处使用文件句柄f...</span></span><br><span class="line">    <span class="comment">// 超出此作用域时，系统会自动调用file的析构函数，从而释放资源</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>综上所述，RAII的本质内容是用对象代表资源，把管理资源的任务转化为管理对象的任务，将资源的获取和释放与对象的构造和析构对应起来，从而确保在对象的生存期内资源始终有效，对象销毁时资源必被释放。换句话说，拥有对象就等于拥有资源，对象存在则资源必定存在。由此可见，RAII惯用法是进行资源管理的有力武器。C++程序员依靠RAII写出的代码不仅简洁优雅，而且做到了异常安全。</p>
+<h2 id="智能指针"><a href="#智能指针" class="headerlink" title="智能指针"></a>智能指针</h2><p>在谈论智能指针之前，我们先谈一下在C++中为什么要使用指针，以及应该如何使用指针。</p>
+<p>指针的作用：</p>
+<ul>
+<li><p>动态分配内存——根据生存期的不同，对象有两种分配方式。栈上对象超出其作用域时会自动析构；而通过 <code>new Object()</code> 方式分配对象时，对象的生存期是动态的，这意味着若不主动释放对象，对象将一直存在。</p>
+</li>
+<li><p>接口设计——尽管在编译期通过函数重载和模板，同名函数可以针对不同类型拥有不同实现，以实现<u><em>静态多态</em></u>。但对于库设计者来说，在编译库时并不知道库的使用者会通过什么类型的对象调用编译好的函数。程序通过运行时查找虚函数表，来确定要调用的函数的具体实现，即*<u>动态多态</u>*。</p>
+<blockquote>
+<p>其实不光cpp这样，c语言也是这样的，比如驱动框架已经写好了，linux kernel本身提供的，而我的驱动可以动态inmod进来，我的驱动框架就不需要知道我的设备写函数的硬地址，你只需要把函数挂在我这里，我通过函数指针调用就行了，这种问题设计的初衷还是利用已经存在的二进制，也就是lib不应该和caller强耦合的。</p>
+<p>多态的本意也是在此。利用小的性能代价实现解偶一直是抬高软件生产和协作的主题。</p>
+</blockquote>
+</li>
+</ul>
+<p>一些典型应用场景：</p>
+<ul>
+<li>引用语义——有时你可能需要通过传递对象的指针（不管对象是如何分配的）以便你可以在函数中去访问/修改这个对象的数据（而不是它的一份拷贝），但是在大多数情况下，你应该优先考虑使用引用方式，而不是指针，因为引用就是被设计出来实现这个需求的。</li>
+<li>运行时多态——通过传递对象的指针或引用，虚函数在程序运行时可以拥有不同的实现。</li>
+<li>可选参数——常见的通过传递空指针表示忽略入参。如果只有一个参数的情况，应该优先考虑使用缺省参数或是对函数进行重载。或者考虑使用一种可封装此行为的类型，比如 <code>boost::optional</code>或者 <code>std::optional</code>。</li>
+<li>解耦类型——使用指针的另一个好处在于可以用于前向声名（forward declaration）指向特定类型（如果使用对象类型，则需要定义对象），这种方式可以减少参与编译的文件，从而显著地提高编译效率，具体可以看 <a href="http://en.wikipedia.org/wiki/Opaque_pointer" target="_blank" rel="noopener">Pimpl idiom</a> 用法。</li>
+<li>与C库或者C风格库交互——此时只能够使用指针，这种情况下，你要确保的是指针使用只限定在必要的代码段中。指针可以通过智能指针的转换得到，比如使用智能指针的<code>get()</code>成员函数。如果C库操作分配的内存需要你在代码中维护并显式地释放时，可以将指针封装在智能指针中，通过实现 <code>deleter</code> 从而可以有效的地释放对象。</li>
+</ul>
+<p>与使用裸指针相比，在程序中使用智能指针会给我们带来一些好处：</p>
+<ol>
+<li>明确资源的ownership；</li>
+<li>避免忘记delete这种人类容易犯的错误；</li>
+<li>更好地handle exception。</li>
+</ol>
+<p>标准库提供的智能指针主要有：</p>
+<h4 id="std-unique-ptr"><a href="#std-unique-ptr" class="headerlink" title="std::unique_ptr"></a>std::unique_ptr</h4><ul>
+<li>小巧、高速、具有移动语义的智能指针，对托管的资源拥有专属所有权。</li>
+<li>默认地，资源析构采用delete运算符来实现，但可以指定自定义删除器。有状态的删除器和采用函数指针实现的删除器会增加<code>std::unique_ptr</code>型别的对象尺寸。</li>
+<li><code>std::unique_ptr</code> 可以非常容易转换成<code>std::shared_ptr</code>。</li>
+</ul>
+<h4 id="std-shared-ptr"><a href="#std-shared-ptr" class="headerlink" title="std::shared_ptr"></a>std::shared_ptr</h4><ul>
+<li><p>提供了拷贝语义的智能指针，对任意资源在共享所有权语义下进行生命周期管理的垃圾回收。</p>
+</li>
+<li><p>与<code>std::unique_ptr</code> 相比，<code>std::shared_ptr</code>的尺寸通常是裸指针尺寸的两倍，它还会带来控制块的开销，并要求原子化的引用计数操作。</p>
+</li>
+<li><p>默认的资源析构通过delete运算符进行，但同时也支持定制删除器。删除器的型别对<code>std::shared_ptr</code>的型别没有影响。</p>
+</li>
+</ul>
+<h4 id="std-weak-ptr"><a href="#std-weak-ptr" class="headerlink" title="std::weak_ptr"></a>std::weak_ptr</h4><ul>
+<li>使用<code>std::weak_ptr</code>来代替可能空悬的<code>std::shared_ptr</code>。</li>
+<li>广泛地用于缓存，观察者列表，以及避免<code>std::shared_ptr</code>指针环路。</li>
+</ul>
+<p>一个使用<code>shared_ptr</code>和<code>weak_ptr</code>来共享数据的例子：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//Sometimes you need to share data between instances, </span></span><br><span class="line"><span class="comment">//but you need that data to be accessed externally, </span></span><br><span class="line"><span class="comment">//automatically created when needed, and destroyed when not needed anymore.</span></span><br><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="built_in">std</span>::<span class="built_in">shared_ptr</span>&lt;T&gt; getSharedData()</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="built_in">std</span>::mutex mtx;</span><br><span class="line">    <span class="keyword">static</span> <span class="built_in">std</span>::weak_ptr&lt;T&gt; ptr;</span><br><span class="line">    <span class="built_in">std</span>::lock_guard&lt;<span class="built_in">std</span>::mutex&gt; lk(mtx);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> p = ptr.lock();</span><br><span class="line">    <span class="keyword">if</span> (p) <span class="keyword">return</span> p;</span><br><span class="line">    </span><br><span class="line">    p = <span class="built_in">std</span>::make_shared&lt;T&gt;();</span><br><span class="line">    ptr = p;</span><br><span class="line">    <span class="keyword">return</span> p;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下面是如何使用：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">FooSharedData</span></span></span><br><span class="line"><span class="class">&#123;</span> </span><br><span class="line">	<span class="comment">// ... details here</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Foo</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	Foo() : m_shared(getSharedData&lt;FooSharedData&gt;()) &#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="built_in">std</span>::<span class="built_in">shared_ptr</span>&lt;FooSharedData&gt; m_shared;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	&#123;</span><br><span class="line">        Foo a; <span class="comment">// Will create the FooSharedData instance</span></span><br><span class="line">        Foo b; <span class="comment">// Will grab the existing FooSharedData instance</span></span><br><span class="line">        <span class="comment">// Can access it externally too</span></span><br><span class="line">        <span class="keyword">auto</span> data = getSharedData&lt;FooSharedData&gt;();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// At this point, there are no more strong references to the FooSharedData instance,</span></span><br><span class="line">	<span class="comment">// so it gets deleted</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// This will recreate a FooSharedData instance, since the previous one was destroyed</span></span><br><span class="line">	Foo c;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Language/" rel="tag"># Language</a>
+          
+            <a href="/tags/程序语言/" rel="tag"># 程序语言</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/05/21/value-semantics-and-data-abstraction-2/" rel="next" title="值语义和数据抽象（二）">
+                <i class="fa fa-chevron-left"></i> 值语义和数据抽象（二）
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/05/26/polymorphism/" rel="prev" title="C++中的多态">
+                C++中的多态 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDkwNC8yMTQyNg=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Wkkkkk</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">32</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#堆栈"><span class="nav-text">堆栈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#什么是RAII"><span class="nav-text">什么是RAII</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#智能指针"><span class="nav-text">智能指针</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-fas fa-heartbeat"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wkkkkk</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-user"></i>
+    </span>
+    <span class="site-uv" title="总访客量">
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+    </span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+  
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-eye"></i>
+    </span>
+    <span class="site-pv" title="总访问量">
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+    <script>
+  window.livereOptions = {
+    refer: '2019/05/22/RAII-and-smart-pointer/'
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+</script>
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

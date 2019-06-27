@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="在前面的文章中，我们实现了一个可用的WorkQueue。但是它在效率上是有问题的。主要的原因就是所有的工作线程都在争夺任务队列的控制权，产生了竞争(contention)。 本文将介绍如何设计一种高效的任务执行系统。">
+<meta name="keywords" content="Code design,程序设计">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The Design of Task System">
+<meta property="og:url" content="http://wkkkkk.github.io/2019/06/19/The-Design-of-Task-System/index.html">
+<meta property="og:site_name" content="Wkkkkk">
+<meta property="og:description" content="在前面的文章中，我们实现了一个可用的WorkQueue。但是它在效率上是有问题的。主要的原因就是所有的工作线程都在争夺任务队列的控制权，产生了竞争(contention)。 本文将介绍如何设计一种高效的任务执行系统。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://wkkkkk.github.io/The-Design-of-Task-System/contention.png">
+<meta property="og:image" content="http://wkkkkk.github.io/The-Design-of-Task-System/evolution.png">
+<meta property="og:updated_time" content="2019-06-27T11:59:19.642Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="The Design of Task System">
+<meta name="twitter:description" content="在前面的文章中，我们实现了一个可用的WorkQueue。但是它在效率上是有问题的。主要的原因就是所有的工作线程都在争夺任务队列的控制权，产生了竞争(contention)。 本文将介绍如何设计一种高效的任务执行系统。">
+<meta name="twitter:image" content="http://wkkkkk.github.io/The-Design-of-Task-System/contention.png">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Wkkkkk" type="application/atom+xml">
+
+
+
+  
+  
+  <link rel="canonical" href="http://wkkkkk.github.io/2019/06/19/The-Design-of-Task-System/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>The Design of Task System | Wkkkkk</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Wkkkkk</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://wkkkkk.github.io/2019/06/19/The-Design-of-Task-System/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Wkkkkk">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wkkkkk">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">The Design of Task System
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+			
+          <span class="post-time">
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-06-19 16:10:27" itemprop="dateCreated datePublished" datetime="2019-06-19T16:10:27+08:00">2019-06-19</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-27 19:59:19" itemprop="dateModified" datetime="2019-06-27T19:59:19+08:00">2019-06-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Multi-threading/" itemprop="url" rel="index"><span itemprop="name">Multi-threading</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="post-meta-item-icon">
+            <i class="fa fa-eye"></i>
+             阅读次数： 
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在前面的文章中，我们实现了一个可用的<a href="https://wkkkkk.github.io/2019/06/06/Monitor-and-WorkQueue/">WorkQueue</a>。但是它在效率上是有问题的。主要的原因就是所有的工作线程都在争夺任务队列的控制权，产生了竞争(contention)。</p>
+<p>本文将介绍如何设计一种高效的任务执行系统。</p>
+<a id="more"></a>
+
+<h2 id="竞争问题"><a href="#竞争问题" class="headerlink" title="竞争问题"></a>竞争问题</h2><p>如果我们在同一进程的多个线程中同时对某一份资源进行访问，就可能出现竞争的问题。这一现象可以用下图表示。</p>
+<p><img src="/The-Design-of-Task-System/contention.png" alt="contention"></p>
+<p>要正确地解决这样的问题，我们可以利用诸如互斥量等同步手段进行对资源的访问进行限制。但是这种做法也带来了一些问题：</p>
+<ul>
+<li>像锁这样的同步原语非常容易被错误地使用，为程序开发带来潜在的破坏性影响；</li>
+<li>竞争问题仍然存在，而这可能降低程序运行的效率。</li>
+</ul>
+<h2 id="朴素的线程池设计"><a href="#朴素的线程池设计" class="headerlink" title="朴素的线程池设计"></a>朴素的线程池设计</h2><p>首先我们考虑无返回值、无参数的异步过程的执行。在这种情况下，最直接的处理方案就是利用一个队列来存储提交的异步任务，同时建立一个线程池来消费这个任务队列。为此，我们需要实现两个部分：多线程的任务队列，以及任务的提交和请求。</p>
+<p>多线程的任务队列的基本设计如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> <span class="keyword">lock_t</span> = unique_lock&lt;mutex&gt;;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">notification_queue</span> &#123;</span></span><br><span class="line">    <span class="built_in">deque</span>&lt;function&lt;<span class="keyword">void</span>()&gt;&gt; _q;</span><br><span class="line">    <span class="keyword">bool</span> _done&#123;<span class="literal">false</span>&#125;;</span><br><span class="line">    mutex _mutex;</span><br><span class="line">    condition_variable _ready;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">done</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        &#123;</span><br><span class="line">            unique_lock&lt;mutex&gt; lock&#123;_mutex&#125;;</span><br><span class="line">            _done = <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    	_ready.notify_all();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">bool</span> <span class="title">pop</span><span class="params">(function&lt;<span class="keyword">void</span>()&gt;&amp; x)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">lock_t</span> lock&#123;_mutex&#125;;</span><br><span class="line">        <span class="keyword">while</span> (_q.empty() &amp;&amp; !_done) _ready.wait(lock);</span><br><span class="line">        <span class="keyword">if</span> (_q.empty()) <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        x = move(_q.front());</span><br><span class="line">        _q.pop_front();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">template</span>&lt;<span class="keyword">typename</span> F&gt;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">push</span><span class="params">(F&amp;&amp; f)</span> </span>&#123;</span><br><span class="line">        &#123;</span><br><span class="line">        	<span class="keyword">lock_t</span> lock&#123;_mutex&#125;;</span><br><span class="line">        	_q.emplace_back(forward&lt;F&gt;(f));</span><br><span class="line">        &#125;</span><br><span class="line">        _ready.notify_one();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>在此多线程队列的支持下，初步的线程池系统可以有如下实现：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">task_system</span> &#123;</span></span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">unsigned</span> _count&#123;thread::hardware_concurrency()&#125;;</span><br><span class="line">    <span class="built_in">vector</span>&lt;thread&gt; _threads;</span><br><span class="line">    notification_queue _q;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">        	function&lt;<span class="keyword">void</span>()&gt; f;</span><br><span class="line">			<span class="keyword">if</span> (!_q.pop(f)) <span class="keyword">break</span>;</span><br><span class="line">            f();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	task_system() &#123;</span><br><span class="line">		<span class="keyword">for</span> (<span class="keyword">unsigned</span> n = <span class="number">0</span>; n != _count; ++n) &#123;</span><br><span class="line">    		_threads.emplace_back([&amp;]&#123; run(); &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">	~task_system() &#123;</span><br><span class="line">        _q.done();</span><br><span class="line">		<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; e : _threads) e.join();</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> F&gt;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">async_</span><span class="params">(F&amp;&amp; f)</span> </span>&#123;</span><br><span class="line">    	_q.push(forward&lt;F&gt;(f));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>上述代码虽然实现了一个简单的线程池，但是在效率上是有问题的。主要的原因就是所有的工作线程都在争夺任务队列的控制权，产生了<code>contention</code>。为了缓解<code>contention</code>现象，可以从以下两个方面来入手：</p>
+<ul>
+<li>显式的以待头节点的链表来实现队列，从而使得任务的提交和请求所需要的锁分开；</li>
+<li>为每一个线程分配一个专有的任务队列，同时允许线程向其他任务队列请求任务，即 <code>work_steal</code>。</li>
+</ul>
+<h2 id="为每个线程分配独立的任务队列"><a href="#为每个线程分配独立的任务队列" class="headerlink" title="为每个线程分配独立的任务队列"></a>为每个线程分配独立的任务队列</h2><p>修改<code>task_system</code>的成员变量：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">task_system</span> &#123;</span></span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">unsigned</span> _count&#123;thread::hardware_concurrency()&#125;;</span><br><span class="line">    <span class="built_in">vector</span>&lt;thread&gt; _threads;</span><br><span class="line">    <span class="built_in">vector</span>&lt;notification_queue&gt; _q&#123;_count&#125;; <span class="comment">// queue for each thread</span></span><br><span class="line">    atomic&lt;<span class="keyword">unsigned</span>&gt; _index&#123;<span class="number">0</span>&#125;;	<span class="comment">//</span></span><br><span class="line">	......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>修改<code>run</code>函数，使之支持多个任务队列的运行：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">(<span class="keyword">unsigned</span> i)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">    	function&lt;<span class="keyword">void</span>()&gt; f;</span><br><span class="line">		<span class="keyword">if</span> (!_q[i].pop(f)) <span class="keyword">break</span>;</span><br><span class="line">        f();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接下来是析构函数：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">~task_system() &#123;</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; e : _q) e.done();	</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; e : _threads) e.join();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>和轮转式的任务提交：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> F&gt;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">async_</span><span class="params">(F&amp;&amp; f)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">auto</span> i = _index++;</span><br><span class="line">    _q[i % _count].push(forward&lt;F&gt;(f));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样我们就为每一个线程都分配了一个独立的任务队列，并提供了任务的提交功能。</p>
+<h2 id="支持work-steal的线程池设计"><a href="#支持work-steal的线程池设计" class="headerlink" title="支持work_steal的线程池设计"></a>支持work_steal的线程池设计</h2><p>为了支持<code>work_steal</code>，我们首先为<code>notification_queue</code>添加新的成员函数:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">bool</span> <span class="title">try_pop</span><span class="params">(function&lt;<span class="keyword">void</span>()&gt;&amp; x)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">lock_t</span> lock&#123;_mutex, try_to_lock&#125;;</span><br><span class="line">    <span class="keyword">if</span> (!lock || _q.empty()) <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    </span><br><span class="line">    x = move(_q.front());</span><br><span class="line">    _q.pop_front();</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> F&gt;</span><br><span class="line"><span class="function"><span class="keyword">bool</span> <span class="title">try_push</span><span class="params">(F&amp;&amp; f)</span> </span>&#123;</span><br><span class="line">	&#123;</span><br><span class="line">        <span class="keyword">lock_t</span> lock&#123;_mutex, try_to_lock&#125;;</span><br><span class="line">        <span class="keyword">if</span> (!lock) <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        _q.emplace_back(forward&lt;F&gt;(f));</span><br><span class="line">    &#125;</span><br><span class="line">    _ready.notify_one();</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接下来我们就可以在<code>run</code>函数中实现<code>work_steal</code>了：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">(<span class="keyword">unsigned</span> i)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">        function&lt;<span class="keyword">void</span>()&gt; f;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">unsigned</span> n = <span class="number">0</span>; n != _count; ++n) &#123;</span><br><span class="line">        	<span class="keyword">if</span> (_q[(i + n) % _count].try_pop(f)) <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (!f &amp;&amp; !_q[i].pop(f)) <span class="keyword">break</span>;</span><br><span class="line">        </span><br><span class="line">        f();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>附：<a href="https://github.com/Wkkkkk/ATaskSystem" target="_blank" rel="noopener">完整的源码</a></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>一图胜千言。</p>
+<p><img src="/The-Design-of-Task-System/evolution.png" alt="evolution"></p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Code-design/" rel="tag"># Code design</a>
+          
+            <a href="/tags/程序设计/" rel="tag"># 程序设计</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/19/debian-preface/" rel="next" title="《debian-handbook》前言翻译">
+                <i class="fa fa-chevron-left"></i> 《debian-handbook》前言翻译
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/06/21/concurrency-in-cpp-1/" rel="prev" title="Concurrency In Cpp(1)">
+                Concurrency In Cpp(1) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDkwNC8yMTQyNg=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Wkkkkk</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">32</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#竞争问题"><span class="nav-text">竞争问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#朴素的线程池设计"><span class="nav-text">朴素的线程池设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#为每个线程分配独立的任务队列"><span class="nav-text">为每个线程分配独立的任务队列</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#支持work-steal的线程池设计"><span class="nav-text">支持work_steal的线程池设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-fas fa-heartbeat"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wkkkkk</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-user"></i>
+    </span>
+    <span class="site-uv" title="总访客量">
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+    </span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+  
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-eye"></i>
+    </span>
+    <span class="site-pv" title="总访问量">
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+    <script>
+  window.livereOptions = {
+    refer: '2019/06/19/The-Design-of-Task-System/'
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+</script>
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

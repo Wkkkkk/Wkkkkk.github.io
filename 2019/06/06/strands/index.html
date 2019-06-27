@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="如果你用过Boost Asio，那你肯定用过或者见到过strands。 在编写异步代码时，函数时常会被多个线程并发调用。为了避免函数对同一份资源的竞争，我们可能需要使用诸如互斥量的办法来显式地限制对资源的访问，这无疑为程序的设计和代码的编写带来了不必要的压力。 而Strands正是解决此类问题的一种设计，它可以对一组函数的执行进行调度，保证这一组函数不会并发执行。通过Strand执行的函数不需要显">
+<meta name="keywords" content="Code design,程序设计">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Strands">
+<meta property="og:url" content="http://wkkkkk.github.io/2019/06/06/strands/index.html">
+<meta property="og:site_name" content="Wkkkkk">
+<meta property="og:description" content="如果你用过Boost Asio，那你肯定用过或者见到过strands。 在编写异步代码时，函数时常会被多个线程并发调用。为了避免函数对同一份资源的竞争，我们可能需要使用诸如互斥量的办法来显式地限制对资源的访问，这无疑为程序的设计和代码的编写带来了不必要的压力。 而Strands正是解决此类问题的一种设计，它可以对一组函数的执行进行调度，保证这一组函数不会并发执行。通过Strand执行的函数不需要显">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://wkkkkk.github.io/strands/middle-layer.png">
+<meta property="og:image" content="http://wkkkkk.github.io/strands/workthread-connection.png">
+<meta property="og:image" content="http://wkkkkk.github.io/strands/time-slice.png">
+<meta property="og:image" content="http://wkkkkk.github.io/strands/time-statistic.png">
+<meta property="og:image" content="http://wkkkkk.github.io/strands/time-slice-strand.png">
+<meta property="og:image" content="http://wkkkkk.github.io/strands/time-statistic-strand.png">
+<meta property="og:image" content="http://wkkkkk.github.io/strands/cache-without-strands.png">
+<meta property="og:image" content="http://wkkkkk.github.io/strands/cache-with-strands.png">
+<meta property="og:image" content="http://wkkkkk.github.io/strands/post.png">
+<meta property="og:image" content="http://wkkkkk.github.io/strands/dispatch.png">
+<meta property="og:image" content="http://wkkkkk.github.io/strands/run.png">
+<meta property="og:updated_time" content="2019-06-27T11:59:20.019Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Strands">
+<meta name="twitter:description" content="如果你用过Boost Asio，那你肯定用过或者见到过strands。 在编写异步代码时，函数时常会被多个线程并发调用。为了避免函数对同一份资源的竞争，我们可能需要使用诸如互斥量的办法来显式地限制对资源的访问，这无疑为程序的设计和代码的编写带来了不必要的压力。 而Strands正是解决此类问题的一种设计，它可以对一组函数的执行进行调度，保证这一组函数不会并发执行。通过Strand执行的函数不需要显">
+<meta name="twitter:image" content="http://wkkkkk.github.io/strands/middle-layer.png">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Wkkkkk" type="application/atom+xml">
+
+
+
+  
+  
+  <link rel="canonical" href="http://wkkkkk.github.io/2019/06/06/strands/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Strands | Wkkkkk</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Wkkkkk</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://wkkkkk.github.io/2019/06/06/strands/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Wkkkkk">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wkkkkk">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Strands
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+			
+          <span class="post-time">
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-06-06 16:36:02" itemprop="dateCreated datePublished" datetime="2019-06-06T16:36:02+08:00">2019-06-06</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-27 19:59:20" itemprop="dateModified" datetime="2019-06-27T19:59:20+08:00">2019-06-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Multi-threading/" itemprop="url" rel="index"><span itemprop="name">Multi-threading</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="post-meta-item-icon">
+            <i class="fa fa-eye"></i>
+             阅读次数： 
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>如果你用过<em>Boost Asio</em>，那你肯定用过或者见到过<a href="http://www.boost.org/doc/libs/1_60_0/doc/html/boost_asio/overview/core/strands.html" target="_blank" rel="noopener">strands</a>。</p>
+<p>在编写异步代码时，函数时常会被多个线程并发调用。为了避免函数对同一份资源的竞争，我们可能需要使用诸如互斥量的办法来显式地限制对资源的访问，这无疑为程序的设计和代码的编写带来了不必要的压力。</p>
+<p>而<em>Strands</em>正是解决此类问题的一种设计，它可以对一组函数的执行进行调度，保证这一组函数不会并发执行。通过<em>Strand</em>执行的函数不需要显式地同步，这简化了异步代码的编写。</p>
+<a id="more"></a>
+
+<p>在程序中，如果你只有一个IO线程(比如在<em>Boost::Asio</em>中，只有一个线程调用了 <em>io_service::run</em>​)，那么你并不需要同步。这种情况下该线程中所有的函数会依次执行。但是当你希望提高处理速度分配了多个IO线程时，那资源的竞争问题要求你显式地同步函数的执行，或者使用<em>Strands</em>之类的设计。</p>
+<p>显式地同步函数执行是可能的，但是这会引入不必要的复杂性到代码中，也可能因此带来bugs。</p>
+<p>在一般的任务处理队列中，工作线程会拿到队列中函数并执行。<em>Strands</em>通过在工作线程和函数执行间引入中间层，保证了函数的执行顺序，避免了对资源的竞争。</p>
+<p>示意图如下：<img src="/strands/middle-layer.png" alt="middle-layer"></p>
+<h2 id="可能的场景"><a href="#可能的场景" class="headerlink" title="可能的场景"></a>可能的场景</h2><p><a href="https://github.com/Celtoys/Remotery" target="_blank" rel="noopener">Remotery</a>可以帮助我们可视化线程执行和函数调用的情况。</p>
+<p>测试代码模拟了4个工作线程和8个连接。每个连接会给出一组计算任务到任务队列中，每个任务耗时5 ms到15 ms。尽管这与实际情况下的线程/连接比和任务耗时有所出入，但是这个例子可以很好的解释这个话题。</p>
+<h3 id="阻塞问题"><a href="#阻塞问题" class="headerlink" title="阻塞问题"></a>阻塞问题</h3><p>现在看一下每个线程随时间的执行情况：</p>
+<p><img src="/strands/workthread-connection.png" alt="workthread-connection"></p>
+<p>每一个连接Conn N都用不同的颜色标记出来，连接提交的任务在不同线程中处理。</p>
+<p>如果我们观察每个时间片上线程的运行情况：</p>
+<p><img src="/strands/time-slice.png" alt="time-slice"></p>
+<p>工作线程会从任务队列中取出每个连接提交的任务并执行，当一个线程正在处理一个连接提交的任务时，如果另外一个线程也在处理这个连接提交的任务，那么后者会被阻塞（避免资源竞争）。</p>
+<p>时间记录如下：</p>
+<p><img src="/strands/time-statistic.png" alt="time-static"></p>
+<p>在上述场景中，工作线程大约19%的时间都被阻塞浪费掉了，换句话说，只有81%的时间是在真正处理任务。</p>
+<p>如果我们使用<em>Strand</em>帮助我们同步每一个连接的任务：</p>
+<p><img src="/strands/time-slice-strand.png" alt="time-slice-strand"></p>
+<p><img src="/strands/time-statistic-strand.png" alt="time-statistic-strand"></p>
+<p>只有非常少的时间被内部工作和同步问题浪费了。</p>
+<h3 id="缓存局部性"><a href="#缓存局部性" class="headerlink" title="缓存局部性"></a>缓存局部性</h3><p>另一个可能的好处是更好的CPU缓存利用（cache utilization）。工作线程会倾向于处理同一个连接的多个任务后再处理另一个连接。</p>
+<p>没有使用<em>Strands</em>时的执行情况</p>
+<p><img src="/strands/cache-without-strands.png" alt="cache-without-strands"></p>
+<p>使用<em>Strands</em>时的执行情况</p>
+<p><img src="/strands/cache-with-strands.png" alt="cache-with-strands"></p>
+<p>尽管实际工作中函数处理的情况并不像测试假设的这样，但是测试中的这种结果也表明了<em>Strand</em>可能的好处。</p>
+<h2 id="Strands实现"><a href="#Strands实现" class="headerlink" title="Strands实现"></a>Strands实现</h2><p>作为一个练习，这个实现并不能达到工业强度，但是可以很好地用于我们的实验。</p>
+<p>首先让我们定义<em>Stands</em>需要完成的功能：</p>
+<ol>
+<li><p>没有函数可以并发执行</p>
+<ul>
+<li><p>这要求我们检测是<em>Stands</em>是否在某个线程中运行</p>
+</li>
+<li><p>为了避免阻塞，<em>Stands</em>需要一个内部的任务队列用于确保函数能正确的执行</p>
+</li>
+</ul>
+</li>
+<li><p>函数只在对应的工作线程中被执行</p>
+<ul>
+<li>这要求其他线程中提交的任务正确地被加入到<em>Stands</em>的任务队列中</li>
+</ul>
+</li>
+<li><p>函数的执行顺序没有保证</p>
+<ul>
+<li>我们可能从多个线程中提交任务到<em>Stands</em>的任务队列中，所以任务的执行顺序并没有保证</li>
+</ul>
+</li>
+</ol>
+<p>与<em>Boost::Asio::Strands</em>相似，我们为<em>Stands</em>定义了3个主要的接口：</p>
+<ul>
+<li>post——将任务加入到队列中，稍后执行；</li>
+<li>dispatch——允许时立刻执行任务，否则将任务加入到队列中；</li>
+<li>run——处理所有的任务。</li>
+</ul>
+<p>先不考虑同步的问题，我们可以绘制出这3个方法的行为：</p>
+<p><img src="/strands/post.png" alt="post"></p>
+<p><img src="/strands/dispatch.png" alt="dispatch"></p>
+<p><img src="/strands/run.png" alt="run"></p>
+<p>为了推导全部的代码，我们需要用到一些在前面的文章中介绍的辅助类：</p>
+<ul>
+<li><p>Callstack——允许我们在当前的调用栈中放置标记，用于检测我们是否正在当前线程中执行某个函数；</p>
+</li>
+<li><p>WorkQueue——简单的多消费者/多生产者任务队列。当没有任务时消费者会阻塞；</p>
+</li>
+<li><p>Monitor<t>——对T类型的对象的并发访问提供同步控制。</t></p>
+</li>
+</ul>
+<p>具体的推导如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">pragma</span> once</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"Callstack.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"Monitor.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;assert.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;queue&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;functional&gt;</span></span></span><br><span class="line"> </span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// A strand serializes handler execution.</span></span><br><span class="line"><span class="comment">// It guarantees the following:</span></span><br><span class="line"><span class="comment">// - No handlers executes concurrently</span></span><br><span class="line"><span class="comment">// - Handlers are only executed from the specified Processor</span></span><br><span class="line"><span class="comment">// - Handler execution order is not guaranteed</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Specified Processor must implement the following interface:</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//  template &lt;typename F&gt; void Processor::push(F w);</span></span><br><span class="line"><span class="comment">//      Add a new work item to the processor. F is a callable convertible</span></span><br><span class="line"><span class="comment">// to std::function&lt;void()&gt;</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//  bool Processor::canDispatch();</span></span><br><span class="line"><span class="comment">//      Should return true if we are in the Processor's dispatching function in</span></span><br><span class="line"><span class="comment">// the current thread.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Processor&gt;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Strand</span> &#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    Strand(Processor&amp; proc) : m_proc(proc) &#123;&#125;</span><br><span class="line"> </span><br><span class="line">    Strand(<span class="keyword">const</span> Strand&amp;) = <span class="keyword">delete</span>;</span><br><span class="line">    Strand&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> Strand&amp;) = <span class="keyword">delete</span>;</span><br><span class="line"> </span><br><span class="line">    <span class="comment">// Executes the handler immediately if all the strand guarantees are met,</span></span><br><span class="line">    <span class="comment">// or posts the handler for later execution if the guarantees are not met</span></span><br><span class="line">    <span class="comment">// from inside this call</span></span><br><span class="line">    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> F&gt;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">dispatch</span><span class="params">(F handler)</span> </span>&#123;</span><br><span class="line">        <span class="comment">// If we are not currently in the processor dispatching function (in</span></span><br><span class="line">        <span class="comment">// this thread), then we cannot possibly execute the handler here, so</span></span><br><span class="line">        <span class="comment">// enqueue it and bail out</span></span><br><span class="line">        <span class="keyword">if</span> (!m_proc.canDispatch()) &#123;</span><br><span class="line">            post(<span class="built_in">std</span>::move(handler));</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"> </span><br><span class="line">        <span class="comment">// <span class="doctag">NOTE:</span> At this point we know we are in a worker thread (because of the</span></span><br><span class="line">        <span class="comment">// check above)</span></span><br><span class="line"> </span><br><span class="line">        <span class="comment">// If we are running the strand in this thread, then we can execute the</span></span><br><span class="line">        <span class="comment">// handler immediately without any other checks, since by design no</span></span><br><span class="line">        <span class="comment">// other threads can be running the strand</span></span><br><span class="line">        <span class="keyword">if</span> (runningInThisThread()) &#123;</span><br><span class="line">            handler();</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"> </span><br><span class="line">        <span class="comment">// At this point we know we are in a worker thread, but not running the</span></span><br><span class="line">        <span class="comment">// strand in this thread.</span></span><br><span class="line">        <span class="comment">// The strand can still be running in another worker thread, so we need</span></span><br><span class="line">        <span class="comment">// to atomically enqueue the handler for the other thread to execute OR</span></span><br><span class="line">        <span class="comment">// mark the strand as running in this thread</span></span><br><span class="line">        <span class="keyword">auto</span> trigger = m_data([&amp;](Data&amp; data) &#123;</span><br><span class="line">            <span class="keyword">if</span> (data.running) &#123;</span><br><span class="line">                data.q.push(<span class="built_in">std</span>::move(handler));</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                data.running = <span class="literal">true</span>;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line"> </span><br><span class="line">        <span class="keyword">if</span> (trigger) &#123;</span><br><span class="line">            <span class="comment">// Add a marker to the callstack, so the handler knows the strand is</span></span><br><span class="line">            <span class="comment">// running in the current thread</span></span><br><span class="line">            Callstack&lt;Strand&gt;::<span class="function">Context <span class="title">ctx</span><span class="params">(<span class="keyword">this</span>)</span></span>;</span><br><span class="line">            handler();</span><br><span class="line"> </span><br><span class="line">            <span class="comment">// Run any remaining handlers.</span></span><br><span class="line">            <span class="comment">// At this point we own the strand (It's marked as running in</span></span><br><span class="line">            <span class="comment">// this thread), and we don't release it until the queue is empty.</span></span><br><span class="line">            <span class="comment">// This means any other threads adding handlers to the strand will</span></span><br><span class="line">            <span class="comment">// enqueue them, and they will be executed here.</span></span><br><span class="line">            run();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="comment">// Post an handler for execution and returns immediately.</span></span><br><span class="line">    <span class="comment">// The handler is never executed as part of this call.</span></span><br><span class="line">    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> F&gt;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">post</span><span class="params">(F handler)</span> </span>&#123;</span><br><span class="line">        <span class="comment">// We atomically enqueue the handler AND check if we need to start the</span></span><br><span class="line">        <span class="comment">// running process.</span></span><br><span class="line">        <span class="keyword">bool</span> trigger = m_data([&amp;](Data&amp; data) &#123;</span><br><span class="line">            data.q.push(<span class="built_in">std</span>::move(handler));</span><br><span class="line">            <span class="keyword">if</span> (data.running) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                data.running = <span class="literal">true</span>;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line"> </span><br><span class="line">        <span class="comment">// The strand was not running, so trigger a run</span></span><br><span class="line">        <span class="keyword">if</span> (trigger) &#123;</span><br><span class="line">            m_proc.push([<span class="keyword">this</span>] &#123; run(); &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="comment">// Checks if we are currently running the strand in this thread</span></span><br><span class="line">    <span class="function"><span class="keyword">bool</span> <span class="title">runningInThisThread</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> Callstack&lt;Strand&gt;::contains(<span class="keyword">this</span>) != <span class="literal">nullptr</span>;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="comment">// Processes any enqueued handlers.</span></span><br><span class="line">    <span class="comment">// This assumes the strand is marked as running.</span></span><br><span class="line">    <span class="comment">// When there are no more handlers, it marks the strand as not running.</span></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        Callstack&lt;Strand&gt;::<span class="function">Context <span class="title">ctx</span><span class="params">(<span class="keyword">this</span>)</span></span>;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">            <span class="built_in">std</span>::function&lt;<span class="keyword">void</span>()&gt; handler;</span><br><span class="line">            m_data([&amp;](Data&amp; data) &#123;</span><br><span class="line">                assert(data.running);</span><br><span class="line">                <span class="keyword">if</span> (data.q.size()) &#123;</span><br><span class="line">                    handler = <span class="built_in">std</span>::move(data.q.front());</span><br><span class="line">                    data.q.pop();</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    data.running = <span class="literal">false</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line"> </span><br><span class="line">            <span class="keyword">if</span> (handler)</span><br><span class="line">                handler();</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">Data</span> &#123;</span></span><br><span class="line">        <span class="keyword">bool</span> running = <span class="literal">false</span>;</span><br><span class="line">        <span class="built_in">std</span>::<span class="built_in">queue</span>&lt;<span class="built_in">std</span>::function&lt;<span class="keyword">void</span>()&gt;&gt; q;</span><br><span class="line">    &#125;;</span><br><span class="line">    Monitor&lt;Data&gt; m_data;</span><br><span class="line">    Processor&amp; m_proc;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>为了减少代码依赖，<em>Strands</em>被设计为模板类，你必须指定一个合适的<em>Processor</em>类。</p>
+<p>值得再次强调的是，<em>Strands</em>并不是用<em>Processor</em>来执行函数，而是用它来执行自己的<em>Run</em>方法。</p>
+<h2 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h2><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"Strand.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"WorkQueue.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;random&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;atomic&gt;</span></span></span><br><span class="line"> </span><br><span class="line"><span class="comment">// http://stackoverflow.com/questions/7560114/random-number-c-in-some-range</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">randInRange</span><span class="params">(<span class="keyword">int</span> min, <span class="keyword">int</span> max)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">std</span>::random_device rd;   <span class="comment">// obtain a random number from hardware</span></span><br><span class="line">    <span class="built_in">std</span>::<span class="function">mt19937 <span class="title">eng</span><span class="params">(rd())</span></span>;  <span class="comment">// seed the generator</span></span><br><span class="line">    <span class="built_in">std</span>::uniform_int_distribution&lt;&gt; distr(min, max);  <span class="comment">// define the range</span></span><br><span class="line">    <span class="keyword">return</span> distr(eng);</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Obj</span> &#123;</span></span><br><span class="line">    explicit Obj(int n, WorkQueue&amp; wp) : strand(wp) &#123;</span><br><span class="line">        name = <span class="string">"Obj "</span> + <span class="built_in">std</span>::to_string(n);</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">doSomething</span><span class="params">(<span class="keyword">int</span> val)</span> </span>&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"%s : doing %dn"</span>, name.c_str(), val);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">string</span> name;</span><br><span class="line">    Strand&lt;WorkQueue&gt; strand;</span><br><span class="line">&#125;;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">strandSample</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    WorkQueue workQueue;</span><br><span class="line">    <span class="comment">// Start a couple of worker threads</span></span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;<span class="built_in">std</span>::thread&gt; workerThreads;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++) &#123;</span><br><span class="line">        workerThreads.push_back(<span class="built_in">std</span>::thread([&amp;workQueue] &#123; workQueue.run(); &#125;));</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="comment">// Create a couple of objects that need strands</span></span><br><span class="line">    <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;<span class="built_in">std</span>::<span class="built_in">unique_ptr</span>&lt;Obj&gt;&gt; objs;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">8</span>; i++) &#123;</span><br><span class="line">        objs.push_back(<span class="built_in">std</span>::make_unique&lt;Obj&gt;(i, workQueue));</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="comment">// Counter used by all strands, so we can check if all work was done</span></span><br><span class="line">    <span class="built_in">std</span>::atomic&lt;<span class="keyword">int</span>&gt; doneCount(<span class="number">0</span>);</span><br><span class="line"> </span><br><span class="line">    <span class="comment">// Add work to random objects</span></span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">int</span> todo = <span class="number">20</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; todo; i++) &#123;</span><br><span class="line">        <span class="keyword">auto</span>&amp;&amp; obj = objs[randInRange(<span class="number">0</span>, objs.size() - <span class="number">1</span>)];</span><br><span class="line">        obj-&gt;strand.post([&amp;obj, i, &amp;doneCount] &#123;</span><br><span class="line">            obj-&gt;doSomething(i);</span><br><span class="line">            ++doneCount;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    workQueue.stop();</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span>&amp;&amp; t : workerThreads) &#123;</span><br><span class="line">        t.join();</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    assert(doneCount == todo);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>测试结果如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">Obj <span class="number">2</span> : doing <span class="number">0</span></span><br><span class="line">Obj <span class="number">1</span> : doing <span class="number">1</span></span><br><span class="line">Obj <span class="number">1</span> : doing <span class="number">3</span></span><br><span class="line">Obj <span class="number">1</span> : doing <span class="number">4</span></span><br><span class="line">Obj <span class="number">3</span> : doing <span class="number">6</span></span><br><span class="line">Obj <span class="number">5</span> : doing <span class="number">2</span></span><br><span class="line">Obj <span class="number">4</span> : doing <span class="number">5</span></span><br><span class="line">Obj <span class="number">6</span> : doing <span class="number">11</span></span><br><span class="line">Obj <span class="number">3</span> : doing <span class="number">8</span></span><br><span class="line">Obj <span class="number">5</span> : doing <span class="number">10</span></span><br><span class="line">Obj <span class="number">5</span> : doing <span class="number">12</span></span><br><span class="line">Obj <span class="number">6</span> : doing <span class="number">17</span></span><br><span class="line">Obj <span class="number">3</span> : doing <span class="number">9</span></span><br><span class="line">Obj <span class="number">3</span> : doing <span class="number">13</span></span><br><span class="line">Obj <span class="number">5</span> : doing <span class="number">18</span></span><br><span class="line">Obj <span class="number">0</span> : doing <span class="number">14</span></span><br><span class="line">Obj <span class="number">2</span> : doing <span class="number">15</span></span><br><span class="line">Obj <span class="number">3</span> : doing <span class="number">16</span></span><br><span class="line">Obj <span class="number">5</span> : doing <span class="number">19</span></span><br><span class="line">Obj <span class="number">1</span> : doing <span class="number">7</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>使用<em>Strand</em>有明显的优势：</p>
+<ul>
+<li><p>不在需要显示同步</p>
+<ul>
+<li>对于绑定了同一个Strands的一组函数，我们不必再担心并发执行的问题</li>
+</ul>
+</li>
+<li><p>更少的阻塞</p>
+<ul>
+<li>降低了对同一个连接的资源竞争，如在TCP连接中Buffer的读写顺序控制</li>
+</ul>
+</li>
+<li><p>缓存局部性</p>
+<ul>
+<li>取决于具体的场景，但好过没有</li>
+</ul>
+</li>
+</ul>
+<p>附: <a href="https://github.com/Wkkkkk/Strand" target="_blank" rel="noopener">测试项目</a></p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ol>
+<li><a href="http://www.crazygaze.com/blog/2016/03/17/how-strands-work-and-why-you-should-use-them/" target="_blank" rel="noopener">How strands work and why you should use them</a></li>
+<li><a href="https://www.boost.org/doc/libs/1_60_0/doc/html/boost_asio/overview/core/strands.html" target="_blank" rel="noopener">Boost::Asio::Strands</a></li>
+</ol>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Code-design/" rel="tag"># Code design</a>
+          
+            <a href="/tags/程序设计/" rel="tag"># 程序设计</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/06/callstack-markers/" rel="next" title="Callstack markers">
+                <i class="fa fa-chevron-left"></i> Callstack markers
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/06/10/Hello-Asio/" rel="prev" title="Hello Asio!">
+                Hello Asio! <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDkwNC8yMTQyNg=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Wkkkkk</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">32</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#可能的场景"><span class="nav-text">可能的场景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Strands实现"><span class="nav-text">Strands实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用示例"><span class="nav-text">使用示例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-text">参考</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-fas fa-heartbeat"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wkkkkk</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-user"></i>
+    </span>
+    <span class="site-uv" title="总访客量">
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+    </span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+  
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-eye"></i>
+    </span>
+    <span class="site-pv" title="总访问量">
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+    <script>
+  window.livereOptions = {
+    refer: '2019/06/06/strands/'
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+</script>
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

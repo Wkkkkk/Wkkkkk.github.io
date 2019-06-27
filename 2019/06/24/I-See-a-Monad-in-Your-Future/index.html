@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="对于一个C++程序员，如果你认为你可以躲在你的舒适区中不用考虑函数式编程，那你就大错特错了！ 先是lambdas和std::function对象，再是伪装成std::future的单子(monad)，它们为何而来？ 不过不用慌，它们都只不过是一些函数式编程模式而已。你不会在设计模式书中找到他们，但是一旦你了解它们，你会发现它们也不过是一些显而易见的模式而已。">
+<meta name="keywords" content="Language,程序语言,translation">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《I See a Monad in Your Future》翻译">
+<meta property="og:url" content="http://wkkkkk.github.io/2019/06/24/I-See-a-Monad-in-Your-Future/index.html">
+<meta property="og:site_name" content="Wkkkkk">
+<meta property="og:description" content="对于一个C++程序员，如果你认为你可以躲在你的舒适区中不用考虑函数式编程，那你就大错特错了！ 先是lambdas和std::function对象，再是伪装成std::future的单子(monad)，它们为何而来？ 不过不用慌，它们都只不过是一些函数式编程模式而已。你不会在设计模式书中找到他们，但是一旦你了解它们，你会发现它们也不过是一些显而易见的模式而已。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-27T11:59:19.581Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="《I See a Monad in Your Future》翻译">
+<meta name="twitter:description" content="对于一个C++程序员，如果你认为你可以躲在你的舒适区中不用考虑函数式编程，那你就大错特错了！ 先是lambdas和std::function对象，再是伪装成std::future的单子(monad)，它们为何而来？ 不过不用慌，它们都只不过是一些函数式编程模式而已。你不会在设计模式书中找到他们，但是一旦你了解它们，你会发现它们也不过是一些显而易见的模式而已。">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Wkkkkk" type="application/atom+xml">
+
+
+
+  
+  
+  <link rel="canonical" href="http://wkkkkk.github.io/2019/06/24/I-See-a-Monad-in-Your-Future/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>《I See a Monad in Your Future》翻译 | Wkkkkk</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Wkkkkk</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://wkkkkk.github.io/2019/06/24/I-See-a-Monad-in-Your-Future/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Wkkkkk">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wkkkkk">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">《I See a Monad in Your Future》翻译
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+			
+          <span class="post-time">
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-06-24 17:04:17" itemprop="dateCreated datePublished" datetime="2019-06-24T17:04:17+08:00">2019-06-24</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-27 19:59:19" itemprop="dateModified" datetime="2019-06-27T19:59:19+08:00">2019-06-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/C/" itemprop="url" rel="index"><span itemprop="name">C++</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="post-meta-item-icon">
+            <i class="fa fa-eye"></i>
+             阅读次数： 
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>对于一个C++程序员，如果你认为你可以躲在你的舒适区中不用考虑函数式编程，那你就大错特错了！</p>
+<p>先是lambdas和<code>std::function</code>对象，再是伪装成<code>std::future</code>的单子(monad)，它们为何而来？</p>
+<p>不过不用慌，它们都只不过是一些函数式编程模式而已。你不会在设计模式书中找到他们，但是一旦你了解它们，你会发现它们也不过是一些显而易见的模式而已。</p>
+<a id="more"></a>
+
+<p>让我们从一些背景说明开始：我对<code>C++11</code>中的<code>std::future</code>的设计非常失望，这一点我已经在 <a href="https://bartoszmilewski.com/2009/03/03/broken-promises-c0x-futures/" target="_blank" rel="noopener">Broken Promises — C++0x futures</a>中说明了。我也作出了一些关于如何修改的建议：<a href="https://bartoszmilewski.com/2009/03/10/futures-done-right/" target="_blank" rel="noopener">Futures Done Right</a>。五年过去，一个关于提升<code>std::future</code>的提案<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3721.pdf" target="_blank" rel="noopener">N3721</a>被提交至标准委员讨论。我以为它的通过毫无疑问，因为它修复了原先设计中存在的明显缺陷。一周前，我参加了C++标准委员会的会议，但出乎我意料的是，函数式编程中一些常用的设计模式并不为大家所熟知。所以我会尝试解释为什么关于<code>std::future</code>的改进设计是正确的。</p>
+<p>关于如何设计程序的争论并不简单。你没有办法从数学上证明一种设计好过另一种，或者某组抽象好过另一组，除非你发现了某种设计存在显然的设计缺陷。从直觉上来说，你也许会觉得某种解决方案是优雅的，但你应该如何评价优雅呢？</p>
+<p>庆幸的是，程序库设计有一些广泛接受的评价标准。在我心中，最重要的一个就是正交性，也就是关注点的分离和组合。其次就是该方案是否已经在多种语言中预先实现并测试过。我坚信这一点正是关于<code>std::future</code>的拓展提案面临的处境。我将会一点一点解释一些对于C++程序员来说可能陌生的编程模式，这些模式在其他函数式编程语言中已经得到广泛的使用和测试。这些模式在一些解释性语言中越来越受到欢迎，特别是在处理并行和并发问题时。</p>
+<h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>简而言之，<code>std::future</code>要解决的问题是得到并行计算或者异步任务的结果。举例来说，你在一个单独的线程(或某种计算单元)中开始了一组计算任务，然后你希望在某个时刻得到计算的结果。这是一种最简单的并发模型——将函数对象(闭包)的执行委派给其他线程。</p>
+<p>要从一个线程中返回一个值给另一个线程，你需要某种通信的管道。一个线程设置了管道的值后另一个线程便可以取值。与ML或Haskell提供一种管道抽象的方式不同，<code>C++11</code>将管道分成了两种抽象：<code>promise</code>和<code>future</code>。前者是管道的输入端，而后者则是管道的输出端(在Rust中，类似的对象是<code>Chan</code>和<code>Port</code>)。</p>
+<p>常见的做法是创建一个<code>promise</code>，并用<code>get_future</code>得到<code>future</code>，然后将<code>promise</code>传递新的线程。当新的线程中计算结束后，使用<code>set_value</code>设置<code>promise</code>的值。与此同时，原线程可以执行其他的工作，最后使用<code>get</code>方法从<code>future</code>中取出结果。如果<code>promise</code>已经得到结果，<code>get</code>方法会立刻返回该结果，否则线程会阻塞直到<code>promise</code>被赋值。</p>
+<p>这种做法带来了一些冗余的代码，标准库提供了一种简化的方式。客户可以使用<code>std::async</code>来调用一个函数对象(闭包)，函数计算的结果保存在一个隐式的<code>promise</code>中，而调用的结果正是一个<code>future</code>(出于简化问题的角度我忽略了异常值的处理等问题)。</p>
+<h2 id="The-Functor-Pattern"><a href="#The-Functor-Pattern" class="headerlink" title="The Functor Pattern"></a>The Functor Pattern</h2><p>从抽象角度来说，一个<code>std::future</code>对象的内部封装了一个值。单就这一点来说，除非这种封装带有一些其他的功能或者限制，否则它提供的抽象很难派上用场。举例来说，<code>std::unique_ptr</code>封装了一个值，同时也提供了这个对它的生命周期或内存资源的管理。一个<code>std::future</code>对象封装了一个值，但是在取出这个值时，你可能会被阻塞。函数式编程语言中有一个非常有用的模式来处理这种问题:Functor模式。一个<code>Functor</code>封装了一个任意类型的值，而且允许你通过一个函数来修改它。</p>
+<p>需要留意的是，一般<code>Functor</code>并不允许你直接访问内部的值，而是提供了修改它的方式。这种模式的精妙之处在于，以<code>future</code>为例，<code>Functor</code>允许你通过函数修改一个还不存在的值——而且并不会阻塞。当然，从实现的角度来说，你定义的函数(闭包)会被保存在<code>future</code>中，当内部的值可用时函数会自动被调用，而函数内部可以通过<code>get</code>方法来访问该值。</p>
+<p>提交给委员会的修改第一部分是将<code>std::future</code>变为一个<code>functor</code>。具体来说，就是给它加上一个新的方法<code>then</code>。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> F&gt;</span><br><span class="line"><span class="keyword">auto</span> future::then(F&amp;&amp; func) -&gt; future&lt;<span class="keyword">decltype</span>(func(*<span class="keyword">this</span>))&gt;;</span><br></pre></td></tr></table></figure>
+
+<p><code>future</code>的这个方法以一个函数对象<code>func</code>为参数，而这个函数对象正是以该<code>future&lt;T&gt;</code>对象为参数，<code>then</code>方法的返回值是保存了函数对象返回值的<code>future&lt;R&gt;</code>。</p>
+<p>尽管有些令人费解，但一个<code>future</code>不仅封装了函数执行的结果，而且也保存了函数执行可能的异常。这也正是为什么传递给<code>then</code>方法的函数对象的参数是<code>future&lt;T&gt;</code>而不是<code>T</code>，从<code>future&lt;T&gt;</code>中你可以使用<code>get</code>方法取值，同时也会重新抛出异常(如果存在的话)。另一项提案<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3865.pdf" target="_blank" rel="noopener">N3865</a>介绍了另一个方法<code>next</code>，它用于处理值而不是异常。<code>next</code>方法的优点是它的参数可以是一个以值为参数(而不是<code>future&lt;T&gt;</code>)的普通函数。</p>
+<p><code>Functor</code>模式非常适用于组合异步函数(返回一个<code>future</code>)和普通的函数，但也可以帮助你设计一些能够处理任意类型参数的泛型类。在C++中，对参数类型没有限制的类被称为模板类。标准库中的容易大部分都是基于此。对于一个泛型类来说，只有它当提供了对内部值的操作接口时才能被称为<code>Functor</code>。标准库中的大部分容器通过<code>std::transform</code>算法提供了该功能。对于一个习惯于命令式编程的程序员来说，<code>future</code>和容器这两种截然不同的事情竟然属于同一种函数编程模式——<code>Functor</code>，这一点可能会让他们大吃一惊。</p>
+<p>与函数式编程语言不通，在C++中没有一种统一的可以重用的Functor模式的表达方式，它更多地是在程序员的脑中。举例来说，出于内存管理的考量，<code>std::tranform</code>对迭代器进行操作而不是直接操作容器，目标容器的存储必须提前分配好或者通过迭代器来适配需求。你可以尝试着为<code>future</code>提供一个迭代适配器，这样就可以利用<code>std::transform</code>来访问<code>future</code>，但最终来说，变换操作依赖<code>future</code>内部实现(比如将函数对象保存在其中)，所以变换操作必须是一个方法或者一个<code>future</code>的友元。</p>
+<h2 id="The-Monad-Pattern"><a href="#The-Monad-Pattern" class="headerlink" title="The Monad Pattern"></a>The Monad Pattern</h2><p><code>Functor</code>模式不足以提供<code>future</code>以组合性。一个常见的应用场景是这样的，用户定义了一组返回<code>future</code>的函数，每一个表示了一种具体的任务，然后用户需要将这些函数组合起来完成更复杂的任务。</p>
+<p>以一个组合异步操作的例子来说，如果我们要打开一个文件然后读取它的内容。假定我们有个<code>async_open</code>函数返回一个文件句柄的<code>future</code>:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">future&lt;HANDLE&gt; async_open(<span class="built_in">string</span> &amp;);</span><br></pre></td></tr></table></figure>
+
+<p>还有一个<code>async_read</code>函数以文件句柄为参数，返回一个字符buffer的<code>future</code>:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">future&lt;Buffer&gt; async_read(HANDLE fh);</span><br></pre></td></tr></table></figure>
+
+<p>如果你用<code>next</code>方法将这两个函数组合起来，函数调用的返回值是一个<code>future</code>的<code>future</code>:</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">future&lt;future&lt;Buffer&gt;&gt; ffBuf = async_open(<span class="string">"foo"</span>).next(&amp;async_read);</span><br></pre></td></tr></table></figure>
+
+<p>为了在不阻塞的情况下继续组合函数调用，比如异步处理字符buffer，你需要一种将双重<code>future</code>展开成一个<code>future</code>的办法，然后便可以继续调用<code>next</code>。</p>
+<p>这种展开的方法<code>unwrap</code>正是关于<code>future</code>拓展提案的另一部分。它以 <code>future&lt;future&lt;T&gt;&gt;</code> 为 参数，返回<code>future&lt;T&gt;</code>。通过在<code>next</code>后调用<code>unwrap</code>的方式，你可以链式组合异步函数。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">async_open(<span class="string">"foo"</span>).next(&amp;async_read).unwrap().next(&amp;async_process);</span><br></pre></td></tr></table></figure>
+
+<p>在函数式编程中，这种展开函数被称为<strong>join</strong>。这种在<code>next</code>后接<code>unwrap</code>(在Haskell中,<code>fmap</code>后接<code>join</code>)的组合方式是如此的常见，甚至有一个单独的名字<strong>bind</strong>(在Haskell中操作符&gt;&gt;=)。所以如果<strong>bind</strong>是<code>future</code>的一个方法的话也不足为奇。实际上，提案(n3721)建议重载<code>then</code>方法使得它能自动展开多个<code>future</code>，这样的话，<code>then</code>方法就是<strong>bind</strong>了。</p>
+<p>另外一个重要的应用场景是:一个可能异步执行的函数有时可能会立刻返回结果。在一些迭代算法中这非常常见，比如当迭代满足终止条件时。举例来说，一个并行式的树遍历算法可能在遍历子节点时异步地进行一些操作，当子节点是一个叶子节点时，操作会同步地返回一个结果。与在代码中对节点设置复杂的条件相比，提供一个返回一个“假“的<code>future</code>——它的<code>get</code>方法不会阻塞——的方式要更轻松一些。通过一个<code>make_ready_future</code>函数来创建一个假的<code>future</code>的方式正是提案的内容之一。</p>
+<p>总的来说，<code>next</code>(或者<code>then</code>)和<code>unwrap</code>方法，和<code>make_ready_future</code>函数对于一个函数式编程程序员来说非常容易辨认，因为它们正是所谓的<strong>monad</strong>模式(在Haskell中，它们对应的是<code>fmap</code>，<code>join</code>和<code>return</code>)。这是一种非常通用的模式用于组合返回了一个封装值的函数。通过<strong>monad</strong>模式你可以直接组合这些函数，而不用在每次组合后手动展开它们的返回值。对于<code>future</code>来说，这是一个非常重要的问题，因为展开<code>future</code>意味着一次对<code>get</code>方法的调用，而这种调用可能带来阻塞，而阻塞不利于并行处理。更好的做法是，你可以创建一组链式的计算任务，然后交给系统来裁定执行的优先顺序。</p>
+<p>通过组合<code>next</code>，<code>unwrap</code>(或者<code>bind</code>)和<code>make_ready_future</code>等函数的方式，你可以指定在多个计算任务中数据的依赖关系，然后在运行时尽可能地利用并行能力加速运算。</p>
+<h2 id="The-Applicative-Pattern"><a href="#The-Applicative-Pattern" class="headerlink" title="The Applicative Pattern"></a>The Applicative Pattern</h2><p><code>then</code>和<code>next</code>适用于一些线性组合的情况：一个函数的返回值(输出)是另一个函数的参数(输入)。但一个更常见的情况是需要将多个异步计算的结果组合起来。在函数式编程中，这种情况被称为将函数应用于多个参数，而这正是被称为Applicative模式的原因。一个函数式编程程序员可以将一个多参数函数提升，使得它能够以<code>future</code>为参数。</p>
+<p>与之相对的，在命令式编程中，程序员必须对所有输入的<code>future</code>设置一道屏障(barrier)，获取它们内部的值，然后才能将值作为参数传递给函数。提案<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3721.pdf" target="_blank" rel="noopener">N3721</a>包括了一个名为<code>when_all</code>的函数用于处理问题的前一部分——设置屏障。它以一组包含了多个future的容器的迭代器，或者任意数量的future为参数，当所有的future参数均被赋值时，返回一个新的future。它抽象了对所有输入的future的一次逻辑与操作。</p>
+<p>以迭代器为参数的<code>when_all</code>函数返回<code>future&lt;vector&lt;future&lt;T&gt;&gt;&gt;</code>，而以多个<code>future</code>为参数时返回<code>future&lt;tuple&lt;future&lt;T&gt;&gt;&gt;</code>。用户必须自己从返回值里取出结果。也正是因此，直接对<code>when_all</code>的返回值调用<code>then</code>或者<code>next</code>的方式行不通。</p>
+<p>如果你想知道这种链式组合在函数式编程语言中是如何实现的，你就必须理解偏应用(partial application)是什么。一个带有多个输入参数的函数并不需要一次性绑定所有的参数。你可以想象，为有n个参数的函数绑定第一个参数时会返回一个有n-1个的参数的函数。在C++11中，这种方法可以通过<code>std::bind</code>实现，它以一个函数和一些值为参数，返回一个绑定了这些值为参数的函数。</p>
+<p>基于这种思想，你可以将一个带有n个参数的函数与一个<code>future</code>绑定，得到一个带有n-1个参数的函数的<code>future</code>。然后你需要处理的问题就变成了如何对一个<code>future</code>对象调用一个<code>future</code>函数，而这正是applicative pattern解决的问题。在Haskell中，<code>Applicative</code> 类定义了操作符&lt;*&gt;来对一个封装的值调用一个封装了的函数。</p>
+<h2 id="The-Monoid-Pattern"><a href="#The-Monoid-Pattern" class="headerlink" title="The Monoid Pattern"></a>The Monoid Pattern</h2><p>并发编程中一种非常常见的场景是，你开启多个计算任务，然后选择最先结束的那一个作为结果。这种同时测试多个算法的做法正是推测计算的基础，当然你也可能在等待任意数量的异步事件发生来进行决策。</p>
+<p>你可能希望有一个基本的抽象，能够对两个<code>future</code>进行逻辑或操作。一个函数式编程程序员可能立刻就想到了幺半群。幺半群定义了一个群和一组二元操作。如果说对future的二元操作选择的是先被赋值的那一个，那future的群是什么呢？从定义可知，群的任意两个元素的二元运算结果都是该集合的一个元素。因此我们需要一个被称为”从不(never)”的future，对它的<code>get</code>方法调用会永远阻塞。</p>
+<p>实际上，我们可以稍微放宽对never的定义。它不会返回一个值，但是它可以抛出一个异常。这样的future可以被用于定义超时行为。将它和其他的future组合起来后，要么其他的future得到计算结果，要么就会有一个超时异常。</p>
+<p>但这不并不是future拓展提案提倡的方式。提案提倡的是一个名为<code>when_any</code>的方法，与<code>when_all</code>类似。用户可以对返回值调用<code>is_ready</code>方法来确定是否得到结果。这种做法的优点是用户仍可以编写等待其他<code>future</code>完成的代码。缺点则是用户需要写许多样板代码，使得程序逻辑变得晦涩。</p>
+<h2 id="性能和编程考量"><a href="#性能和编程考量" class="headerlink" title="性能和编程考量"></a>性能和编程考量</h2><p>提案<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3896.pdf" target="_blank" rel="noopener">N3896:Library Foundations for Asynchronous Operations</a>对使用<code>future</code>作为异步编程的主力的做法表示反对，它指出:一个异步API可能在用户调用<code>then</code>(或<code>next</code>)之前就已经得到了结果，这是会有不必要的同步，可能带来性能的损失。</p>
+<p>另一种可选的方法是将函数对象(闭包)直接传递给异步API，因为许多的异步API的底层正是这样实现的(<del>Boost::Asio大法好</del>)。这两种方法并不互斥，它们可以同时存在，正如上述提案中指出的那样，不过这也给编程模型带来了更多的复杂性。</p>
+<p>从程序员的角度来看，提案N3896提出的并发模型可能非常难以使用。因为它的编程模型像是一台状态机，用户需要对每个状态的转变定义操作。</p>
+<p><code>Future</code>提供了一种有用的对期待值的抽象。程序员在编写代码时可以假定这些值已经得到。此外，它也提供了一种在并发，并行和异步世界通用的语言。无论值是通过一个新的线程计算得到，还是一个轻量级的代理，亦或是一个异步API的调用得到，值都可以被封装在<code>future</code>中。<code>future</code>的组合性和实用性在函数式编程的各种模式中得到体现。</p>
+<p>另一个非常有吸引力的编程模型<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3858.pdf" target="_blank" rel="noopener">Resumable Functions</a>也在C++中被提出，它使得异步代码的编写就串行一样简单。在Haskell中，这种做法作为”do”关键字为程序员所熟知。在C++中，一个可重入的函数会通过<code>await</code>关键字被编译器分割成一组连续的动作。与创建一个future并且将它和lambda函数通过<code>then</code>组合的方式不同，程序员可以在函数内部插入<code>await</code>关键字然后像同步编程一样编写代码。</p>
+<h2 id="附录"><a href="#附录" class="headerlink" title="附录"></a>附录</h2><p><a href="https://bartoszmilewski.com/2014/02/26/c17-i-see-a-monad-in-your-future/" target="_blank" rel="noopener">C++17: I See a Monad in Your Future!</a></p>
+<p>[Functional Programming in C++.pdf](Functional Programming in C++.pdf “下载”)</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Language/" rel="tag"># Language</a>
+          
+            <a href="/tags/程序语言/" rel="tag"># 程序语言</a>
+          
+            <a href="/tags/translation/" rel="tag"># translation</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/24/concurrency-in-cpp-2/" rel="next" title="Concurrency In Cpp(2)">
+                <i class="fa fa-chevron-left"></i> Concurrency In Cpp(2)
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/06/26/a-tcp-echo-server-with-boost-asio-2/" rel="prev" title="A TCP echo server with Boost.Asio(2)">
+                A TCP echo server with Boost.Asio(2) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDkwNC8yMTQyNg=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Wkkkkk</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">32</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#存在的问题"><span class="nav-text">存在的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#The-Functor-Pattern"><span class="nav-text">The Functor Pattern</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#The-Monad-Pattern"><span class="nav-text">The Monad Pattern</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#The-Applicative-Pattern"><span class="nav-text">The Applicative Pattern</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#The-Monoid-Pattern"><span class="nav-text">The Monoid Pattern</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#性能和编程考量"><span class="nav-text">性能和编程考量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#附录"><span class="nav-text">附录</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-fas fa-heartbeat"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wkkkkk</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-user"></i>
+    </span>
+    <span class="site-uv" title="总访客量">
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+    </span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+  
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-eye"></i>
+    </span>
+    <span class="site-pv" title="总访问量">
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+    <script>
+  window.livereOptions = {
+    refer: '2019/06/24/I-See-a-Monad-in-Your-Future/'
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+</script>
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

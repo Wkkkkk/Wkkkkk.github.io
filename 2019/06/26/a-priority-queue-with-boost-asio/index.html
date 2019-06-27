@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="在这篇文章中，我们先介绍一下Executor模式，然后试着用Asio实现一个优先队列。">
+<meta name="keywords" content="concurrency,Code design">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A Priority Queue with Boost.Asio">
+<meta property="og:url" content="http://wkkkkk.github.io/2019/06/26/a-priority-queue-with-boost-asio/index.html">
+<meta property="og:site_name" content="Wkkkkk">
+<meta property="og:description" content="在这篇文章中，我们先介绍一下Executor模式，然后试着用Asio实现一个优先队列。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-27T11:59:19.646Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="A Priority Queue with Boost.Asio">
+<meta name="twitter:description" content="在这篇文章中，我们先介绍一下Executor模式，然后试着用Asio实现一个优先队列。">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Wkkkkk" type="application/atom+xml">
+
+
+
+  
+  
+  <link rel="canonical" href="http://wkkkkk.github.io/2019/06/26/a-priority-queue-with-boost-asio/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>A Priority Queue with Boost.Asio | Wkkkkk</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Wkkkkk</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://wkkkkk.github.io/2019/06/26/a-priority-queue-with-boost-asio/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Wkkkkk">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wkkkkk">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">A Priority Queue with Boost.Asio
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+			
+          <span class="post-time">
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-06-26 15:13:56" itemprop="dateCreated datePublished" datetime="2019-06-26T15:13:56+08:00">2019-06-26</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-27 19:59:19" itemprop="dateModified" datetime="2019-06-27T19:59:19+08:00">2019-06-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Asio/" itemprop="url" rel="index"><span itemprop="name">Asio</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="post-meta-item-icon">
+            <i class="fa fa-eye"></i>
+             阅读次数： 
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在这篇文章中，我们先介绍一下Executor模式，然后试着用Asio实现一个优先队列。</p>
+<a id="more"></a>
+
+<h2 id="Executors"><a href="#Executors" class="headerlink" title="Executors"></a>Executors</h2><p><code>Executors</code>定义了一组关于何时何地如何执行函数对象的一组规则。在多线程序中，可以使用它将任务的提交和执行解耦。</p>
+<p>举例来说：</p>
+<table>
+<thead>
+<tr>
+<th>Type of executor</th>
+<th>Where, when and how</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>操作系统</td>
+<td>进程中的任意线程</td>
+</tr>
+<tr>
+<td>Thread pool</td>
+<td>仅限于线程池中的线程</td>
+</tr>
+<tr>
+<td>Strand</td>
+<td>按照FIFO的顺序依次执行队列中的函数对象</td>
+</tr>
+<tr>
+<td>Future / Promise</td>
+<td>任意线程。函数对象抛出的异常保存在promise中</td>
+</tr>
+</tbody></table>
+<p>满足一定规则的类都可以被称为<code>Executors</code>，所以<code>Executors</code>不仅指上述这些类别。就像标准库里的allocators一样，用户可以根据自己的规则定义自己的<code>executor</code>。</p>
+<p>一般来说，<code>executor</code>提供了两种基本的提交任务的方式：<strong>dispatch</strong>和<strong>post</strong>。它们的区别在于任务调度的优先程度。</p>
+<h3 id="dispatch"><a href="#dispatch" class="headerlink" title="dispatch"></a>dispatch</h3><p>dispatch操作的优先程度最高，它表示在满足<code>executor</code>条件的情况下尽快地执行函数对象。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">f1</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="built_in">std</span>::<span class="built_in">cout</span> &lt;&lt; <span class="string">"Hello, world!\n"</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">dispatch(ex, f1);</span><br></pre></td></tr></table></figure>
+
+<p>通过对<code>ex</code>调用一个dispatch操作，我们向<code>executor</code>发起了立刻执行指定任务的一个请求。当然，任务是否立刻执行依赖于<code>executor</code>具体的规则：</p>
+<table>
+<thead>
+<tr>
+<th>Type of executor</th>
+<th>Behaviour of dispatch</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>操作系统</td>
+<td>在从<code>dispatch()</code>返回前就调用函数对象</td>
+</tr>
+<tr>
+<td>线程池</td>
+<td>如果我们在线程池内部调用该方法，线程池会在从<code>dispatch()</code>返回前就<br>调用函数对象。否则的话会将任务加入到线程池的任务队列中(稍后执行)</td>
+</tr>
+<tr>
+<td>Strand</td>
+<td>如果我们在Strand内部调用该方法，或者Strand内的任务队列为空，<br>Strand会在从<code>dispatch()</code>返回前就调用函数对象。<br>否则的话会将任务加入到Strand的任务队列中(稍后执行)</td>
+</tr>
+<tr>
+<td>Future / Promise</td>
+<td>将函数对象包裹在try/catch中，并且在从<code>dispatch()</code>返回前就调用它</td>
+</tr>
+</tbody></table>
+<p>这种方式的另一个好处是如果允许的话编译器会折叠(inline)函数调用。</p>
+<h3 id="post"><a href="#post" class="headerlink" title="post"></a>post</h3><p>post操作则会将任务排进处理队列，然后返回，任务会在稍后某个时机被处理。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">post(ex, f1);</span><br></pre></td></tr></table></figure>
+
+<p>任务的执行方式取决于<code>executor</code>具体的规则：</p>
+<table>
+<thead>
+<tr>
+<th>Type of executor</th>
+<th>Behaviour of post</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>操作系统</td>
+<td>将函数对象加入到系统的线程池任务队列中</td>
+</tr>
+<tr>
+<td>线程池</td>
+<td>将函数对象加入到线程池的任务队列中</td>
+</tr>
+<tr>
+<td>Strand</td>
+<td>将函数对象加入到Strand的任务队列中</td>
+</tr>
+<tr>
+<td>Future / Promise</td>
+<td>将函数对象包裹在try/catch中，并加入到系统的任务队列中</td>
+</tr>
+</tbody></table>
+<h3 id="example"><a href="#example" class="headerlink" title="example"></a>example</h3><p>我们写一个向线程池post任务的小例子：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">bank_account</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">int</span> balance_ = <span class="number">0</span>;</span><br><span class="line">  <span class="built_in">std</span>::experimental::thread_pool pool_&#123;<span class="number">1</span>&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">deposit</span><span class="params">(<span class="keyword">int</span> amount)</span></span></span><br><span class="line"><span class="function">  </span>&#123;</span><br><span class="line">    post(pool_.get_executor(), [=]</span><br><span class="line">      &#123;</span><br><span class="line">        balance_ += amount;</span><br><span class="line">      &#125;);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">withdraw</span><span class="params">(<span class="keyword">int</span> amount)</span></span></span><br><span class="line"><span class="function">  </span>&#123;</span><br><span class="line">    post(pool_.get_executor(), [=]</span><br><span class="line">      &#123;</span><br><span class="line">        <span class="keyword">if</span> (balance_ &gt;= amount)</span><br><span class="line">          balance_ -= amount;</span><br><span class="line">      &#125;);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>这里，线程池就是一个典型的<strong>execution context</strong>，它表示了函数对象执行的位置。类似的还有<code>Boost::Asio::io_context</code>。</p>
+<h2 id="Priority-Queue"><a href="#Priority-Queue" class="headerlink" title="Priority Queue"></a>Priority Queue</h2><p>仿照<code>Boost::Asio::io_context</code>的实现，我们可以定义一个<code>priority_handler_queue</code>类，它继承于<code>boost::asio::execution_context</code>，内部有一个<code>executor</code>满足<strong>Executor</strong>的要求，允许用户提交任务。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">priority_handler_queue</span> :</span> <span class="keyword">public</span> boost::asio::execution_context</span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="comment">// A class that satisfies the Executor requirements.</span></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">executor</span></span></span><br><span class="line"><span class="class">    &#123;</span></span><br><span class="line">    <span class="keyword">public</span>:</span><br><span class="line">        executor(priority_handler_queue&amp; q, <span class="keyword">int</span> p) : context_(q), priority_(p) &#123;&#125;</span><br><span class="line"></span><br><span class="line">        <span class="function">priority_handler_queue&amp; <span class="title">context</span><span class="params">()</span> <span class="keyword">const</span> <span class="keyword">noexcept</span> </span>&#123; <span class="keyword">return</span> context_; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Function, <span class="keyword">typename</span> Allocator&gt;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">dispatch</span><span class="params">(Function f, <span class="keyword">const</span> Allocator&amp; a)</span> <span class="keyword">const</span></span></span><br><span class="line"><span class="function">        </span>&#123;</span><br><span class="line">            post(<span class="built_in">std</span>::forward&lt;Function&gt;(f), a);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Function, <span class="keyword">typename</span> Allocator&gt;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">post</span><span class="params">(Function f, <span class="keyword">const</span> Allocator&amp; a)</span> <span class="keyword">const</span></span></span><br><span class="line"><span class="function">        </span>&#123;</span><br><span class="line">            <span class="function"><span class="keyword">auto</span> <span class="title">p</span><span class="params">(<span class="built_in">std</span>::allocate_shared&lt;queued_handler&lt;Function&gt;&gt;(</span></span></span><br><span class="line"><span class="function"><span class="params">                    <span class="keyword">typename</span> <span class="built_in">std</span>::allocator_traits&lt;</span></span></span><br><span class="line"><span class="function"><span class="params">                            Allocator&gt;::<span class="keyword">template</span> rebind_alloc&lt;<span class="keyword">char</span>&gt;(a),</span></span></span><br><span class="line"><span class="function"><span class="params">                            priority_, <span class="built_in">std</span>::move(f)))</span></span>;</span><br><span class="line"></span><br><span class="line">            <span class="built_in">std</span>::lock_guard&lt;<span class="built_in">std</span>::mutex&gt; lock(context_.mutex_);</span><br><span class="line">            context_.queue_.push(<span class="built_in">std</span>::move(p));</span><br><span class="line">            context_.condition_.notify_one();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Function, <span class="keyword">typename</span> Allocator&gt;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">defer</span><span class="params">(Function f, <span class="keyword">const</span> Allocator&amp; a)</span> <span class="keyword">const</span></span></span><br><span class="line"><span class="function">        </span>&#123;</span><br><span class="line">            post(<span class="built_in">std</span>::forward&lt;Function&gt;(f), a);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">on_work_started</span><span class="params">()</span> <span class="keyword">const</span> <span class="keyword">noexcept</span> </span>&#123;&#125;</span><br><span class="line">        <span class="function"><span class="keyword">void</span> <span class="title">on_work_finished</span><span class="params">()</span> <span class="keyword">const</span> <span class="keyword">noexcept</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">bool</span> <span class="keyword">operator</span>==(<span class="keyword">const</span> executor&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> &amp;context_ == &amp;other.context_ &amp;&amp; priority_ == other.priority_;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">bool</span> <span class="keyword">operator</span>!=(<span class="keyword">const</span> executor&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> !<span class="keyword">operator</span>==(other);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span>:</span><br><span class="line">        priority_handler_queue&amp; context_;</span><br><span class="line">        <span class="keyword">int</span> priority_;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="function">executor <span class="title">get_executor</span><span class="params">(<span class="keyword">int</span> pri = <span class="number">0</span>)</span> <span class="keyword">noexcept</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> executor(*<span class="keyword">const_cast</span>&lt;priority_handler_queue*&gt;(<span class="keyword">this</span>), pri);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>同时，它也有一个可以多线程运行的<code>run()</code>方法和<code>stop()</code>方法：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">while</span>(!stopped_)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">std</span>::unique_lock&lt;<span class="built_in">std</span>::mutex&gt; lock(mutex_);</span><br><span class="line">        condition_.wait(lock, [<span class="keyword">this</span>]&#123; <span class="keyword">return</span> stopped_ || !queue_.empty(); &#125;);</span><br><span class="line">        <span class="keyword">if</span> (stopped_ || queue_.empty()) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">auto</span> <span class="title">p</span><span class="params">(queue_.top())</span></span>;</span><br><span class="line">        queue_.pop();</span><br><span class="line">        lock.unlock();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// make sure there is no mutex being locked</span></span><br><span class="line">        <span class="comment">// when user's code runs</span></span><br><span class="line">        p-&gt;execute();</span><br><span class="line"></span><br><span class="line">        lock.lock();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">stop</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">std</span>::lock_guard&lt;<span class="built_in">std</span>::mutex&gt; lock(mutex_);</span><br><span class="line">    stopped_ = <span class="literal">true</span>;</span><br><span class="line">    condition_.notify_all();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>基于标准库的工具，我们可以实现一个能够按照优先级对提交的函数对象进行保存的队列：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> handler_ptr = <span class="keyword">typename</span> <span class="built_in">std</span>::<span class="built_in">shared_ptr</span>&lt;queued_handler_base&gt;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">queued_handler_base</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	explicit queued_handler_base(int p) : priority_(p) &#123;&#125;</span><br><span class="line">	<span class="keyword">virtual</span> ~queued_handler_base() = <span class="keyword">default</span>;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">execute</span><span class="params">()</span> </span>= <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">int</span> priority_;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Function&gt;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">queued_handler</span> :</span> <span class="keyword">public</span> queued_handler_base</span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	queued_handler(<span class="keyword">int</span> p, Function f) : queued_handler_base(p), function_(<span class="built_in">std</span>::move(f))&#123;&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="function"><span class="keyword">void</span> <span class="title">execute</span><span class="params">()</span> override </span>&#123; function_(); &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	Function function_;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">handler_comp</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="function"><span class="keyword">bool</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="keyword">const</span> handler_ptr&amp; a, <span class="keyword">const</span> handler_ptr&amp; b)</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">		<span class="keyword">return</span> a-&gt;priority_ &lt; b-&gt;priority_;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"><span class="built_in">std</span>::priority_queue&lt;handler_ptr, <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;handler_ptr&gt;, handler_comp&gt; queue_;</span><br></pre></td></tr></table></figure>
+
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><p>一个典型的测试场景如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    priority_handler_queue <span class="built_in">queue</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> low = <span class="built_in">queue</span>.get_executor(<span class="number">0</span>);</span><br><span class="line">    <span class="keyword">auto</span> med = <span class="built_in">queue</span>.get_executor(<span class="number">1</span>);</span><br><span class="line">    <span class="keyword">auto</span> high = <span class="built_in">queue</span>.get_executor(<span class="number">2</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// those tasks will be executed at last</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; <span class="number">10</span>; ++j) &#123;</span><br><span class="line">        dispatch(<span class="built_in">queue</span>, [j] &#123;</span><br><span class="line"></span><br><span class="line">            sleep(<span class="number">1</span>);</span><br><span class="line">            <span class="built_in">std</span>::lock_guard&lt;<span class="built_in">std</span>::mutex&gt; lock(g_io_mutex);</span><br><span class="line">            <span class="built_in">std</span>::<span class="built_in">cout</span> &lt;&lt; <span class="built_in">std</span>::this_thread::get_id() &lt;&lt; <span class="string">" low:"</span> &lt;&lt; j &lt;&lt; <span class="built_in">std</span>::<span class="built_in">endl</span>;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; <span class="number">20</span>; ++j) &#123;</span><br><span class="line">        dispatch(med, [j] &#123;</span><br><span class="line">            sleep(<span class="number">2</span>);</span><br><span class="line">            <span class="built_in">std</span>::lock_guard&lt;<span class="built_in">std</span>::mutex&gt; lock(g_io_mutex);</span><br><span class="line">            <span class="built_in">std</span>::<span class="built_in">cout</span> &lt;&lt; <span class="built_in">std</span>::this_thread::get_id() &lt;&lt; <span class="string">" med:"</span> &lt;&lt; j &lt;&lt; <span class="built_in">std</span>::<span class="built_in">endl</span>;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// those tasks will be executed at first</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; <span class="number">5</span>; ++j) &#123;</span><br><span class="line">        boost::packaged_task&lt;<span class="keyword">int</span>&gt; task([=]() &#123;</span><br><span class="line">            sleep(<span class="number">1</span>);</span><br><span class="line">            <span class="keyword">return</span> <span class="number">111</span>;</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">auto</span> f = task.get_future();</span><br><span class="line">        <span class="comment">// we can chain a handler which executed</span></span><br><span class="line">        <span class="comment">// when the future is satisfied</span></span><br><span class="line">        f.then([](boost::future&lt;<span class="keyword">int</span>&gt; future) &#123;</span><br><span class="line">            <span class="built_in">std</span>::lock_guard&lt;<span class="built_in">std</span>::mutex&gt; lock(g_io_mutex);</span><br><span class="line">            <span class="built_in">std</span>::<span class="built_in">cout</span> &lt;&lt; <span class="built_in">std</span>::this_thread::get_id() &lt;&lt; <span class="string">" high:"</span> </span><br><span class="line">                &lt;&lt; future.get() &lt;&lt; <span class="built_in">std</span>::<span class="built_in">endl</span>;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// we can post boost::packaged_task to executor as well</span></span><br><span class="line">        post(high, <span class="built_in">std</span>::move(task));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// stop when all done</span></span><br><span class="line">    dispatch(<span class="built_in">queue</span>.get_executor(<span class="number">-1</span>), [&amp;]&#123; <span class="built_in">queue</span>.stop(); &#125;);</span><br><span class="line"></span><br><span class="line">    boost::thread_group group_;</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">std</span>::<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; <span class="built_in">std</span>::thread::hardware_concurrency() - <span class="number">1</span>; ++i) &#123;</span><br><span class="line">        group_.create_thread([&amp;]()&#123; <span class="built_in">queue</span>.run(); &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">	<span class="comment">// block main thread here</span></span><br><span class="line">    <span class="built_in">queue</span>.run();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// all is done</span></span><br><span class="line">    group_.join_all();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>附录：<a href="priority_handler_queue.cpp" title="下载">源码</a></p>
+<p><a href="Executors_and_Asynchronous_Operations_Slides.pdf" title="下载">Executors_and_Asynchronous_Operations_Slides.pdf</a></p>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ol>
+<li><a href="http://www.modernescpp.com/index.php/a-short-detour-executors" target="_blank" rel="noopener">A Short Detour: Executors</a></li>
+<li><a href="https://github.com/chriskohlhoff/executors" target="_blank" rel="noopener">A C++14 library for executors</a></li>
+</ol>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/concurrency/" rel="tag"># concurrency</a>
+          
+            <a href="/tags/Code-design/" rel="tag"># Code design</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/26/a-tcp-echo-server-with-boost-asio-2/" rel="next" title="A TCP echo server with Boost.Asio(2)">
+                <i class="fa fa-chevron-left"></i> A TCP echo server with Boost.Asio(2)
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/06/26/docker/" rel="prev" title="Hello Docker！">
+                Hello Docker！ <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDkwNC8yMTQyNg=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Wkkkkk</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">32</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Executors"><span class="nav-text">Executors</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Priority-Queue"><span class="nav-text">Priority Queue</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-fas fa-heartbeat"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wkkkkk</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-user"></i>
+    </span>
+    <span class="site-uv" title="总访客量">
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+    </span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+  
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-eye"></i>
+    </span>
+    <span class="site-pv" title="总访问量">
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+    <script>
+  window.livereOptions = {
+    refer: '2019/06/26/a-priority-queue-with-boost-asio/'
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+</script>
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

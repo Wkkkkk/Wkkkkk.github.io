@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="Debian是一套非常成功的操作系统，它在我们的数字生活中无处不在。尽管人们可能没有意识到它在计算机服务中的巨大作用，但数据可以证实这一点。W3Techs的调查显示，在编写本文的时候，Debian作为GNU/Linux主流版本中最受欢迎的后台操作系统，支撑着超过10%的网页服务。想一想：如果没有Debian，今天你会错过多少网页？不仅如此，Debian还有许多意想不到的应用场景，其中就包括国际空间">
+<meta name="keywords" content="translation,Debian">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《debian-handbook》前言翻译">
+<meta property="og:url" content="http://wkkkkk.github.io/2019/06/19/debian-preface/index.html">
+<meta property="og:site_name" content="Wkkkkk">
+<meta property="og:description" content="Debian是一套非常成功的操作系统，它在我们的数字生活中无处不在。尽管人们可能没有意识到它在计算机服务中的巨大作用，但数据可以证实这一点。W3Techs的调查显示，在编写本文的时候，Debian作为GNU/Linux主流版本中最受欢迎的后台操作系统，支撑着超过10%的网页服务。想一想：如果没有Debian，今天你会错过多少网页？不仅如此，Debian还有许多意想不到的应用场景，其中就包括国际空间">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-27T11:59:19.835Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="《debian-handbook》前言翻译">
+<meta name="twitter:description" content="Debian是一套非常成功的操作系统，它在我们的数字生活中无处不在。尽管人们可能没有意识到它在计算机服务中的巨大作用，但数据可以证实这一点。W3Techs的调查显示，在编写本文的时候，Debian作为GNU/Linux主流版本中最受欢迎的后台操作系统，支撑着超过10%的网页服务。想一想：如果没有Debian，今天你会错过多少网页？不仅如此，Debian还有许多意想不到的应用场景，其中就包括国际空间">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Wkkkkk" type="application/atom+xml">
+
+
+
+  
+  
+  <link rel="canonical" href="http://wkkkkk.github.io/2019/06/19/debian-preface/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>《debian-handbook》前言翻译 | Wkkkkk</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Wkkkkk</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://wkkkkk.github.io/2019/06/19/debian-preface/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Wkkkkk">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wkkkkk">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">《debian-handbook》前言翻译
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+			
+          <span class="post-time">
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-06-19 09:49:07" itemprop="dateCreated datePublished" datetime="2019-06-19T09:49:07+08:00">2019-06-19</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-27 19:59:19" itemprop="dateModified" datetime="2019-06-27T19:59:19+08:00">2019-06-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="post-meta-item-icon">
+            <i class="fa fa-eye"></i>
+             阅读次数： 
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Debian是一套非常成功的操作系统，它在我们的数字生活中无处不在。尽管人们可能没有意识到它在计算机服务中的巨大作用，但数据可以证实这一点。<a href="https://w3techs.com/" target="_blank" rel="noopener">W3Techs</a>的调查显示，在编写本文的时候，Debian作为GNU/Linux主流版本中最受欢迎的后台操作系统，支撑着超过10%的网页服务。想一想：如果没有Debian，今天你会错过多少网页？不仅如此，Debian还有许多意想不到的应用场景，其中就包括国际空间站。你有了解过ISS宇航员的工作吗，无论是通过NASA在社交网络上发布的信息，还是其他的国际组织？Debian支撑着航空航天工作的开展，也使得相关信息的交流成为可能。此外，无数的公司、大学和公共组织也依靠Debian来完成他们日常的工作——向全世界数以百万的用户提供服务。</p>
+<a id="more"></a>
+
+<p>尽管Debian作为一套系统具有非常复杂、富有特色而且可靠的特点，但是它不仅是一套操作系统。它还代表了一种人人可以享有的自由，特别是在这个越来越多日常活动都依赖于软件的世界。Debian的设计哲学起源于一种朴素的自由软件(Free Software)想法——人们应该控制他们的电脑，而不是反过来。掌握了足够多软件知识的人应该能够拆解、更改、重组对他们来说重要的软件，并和其他人分享。无论这些软件只是用来做一些日常活动，像在网上分享厨房的照片，还是用于一些可能带来生命危险的任务，像驾驶汽车或为医疗设备供电，Debian都可以在这些场景发挥作用并且确保人的主导性。对于那些没有软件背景知识的人来说，他们能够委派他们相信的人来代表他们审计或修改基于软件的设备，同样地享受这种服务。</p>
+<p>在强调人对机器的控制的情形时，操作系统起到了至关重要的作用——如果你不能控制电脑设备的操作系统，那你就不可能完全控制一台电脑设备。这一点也正是我们设计Debian的主要目标：创造最好的，完全自由的操作系统。在过去的二十余年中，Debian团队已经开发出一整套操作系统和基于它的配套软件。通过这样做，Debian团队向世界提出了一种高标准的自由软件主张。Debian团队关于软件授权的决定经常会被国际标准组织，政府和其他自由软件项目借鉴，特别是在评价软件是否自由的问题上。</p>
+<p>但是这种政治视角不足以解释Debian项目的独特性。它的独特性在于整个项目更像是一个公开的、独立的社会实验。想一想其他主流Linux分发版本，甚至是一些受欢迎的具有所有权的操作系统(<del>说的不是Windows</del>)。大部分情况下，你都可以找到在背后大力推动这些项目发展的公司。但Debian不同，在Debian项目中，所有维护和更新的活动都由志愿者来负责管理。尽管这些活动的复杂性和多样性令人吃惊——从翻译到系统管理，从市场到资源管理，从会议组织到艺术设计，从书籍记录到法律问题……更不用说软件的开发和打包——但Debian项目的参与者们成功地完成了这些所有的活动。</p>
+<p>Debian这独立性依赖于广泛的志愿者社区。具有上述领域中的相关技能或者所有你能想到能力的人，都可以加入到Debian项目中来提高整个项目的质量。这种独立性也使得Debian的相关决策不会被特定公司的商业利益所影响。这种商业利益与促进人对机器的掌控的目标并不总是相符，最近的科技新闻中已经有太多例子验证了这一点。</p>
+<p>Debian的独特性的最后一个方面在于这场社会实验运行的方式。与官僚主义的习俗不同，Debian项目中决策的制定是高度分散的。整个项目有明确的职责划分。项目中每一部分的管理者可以自己来进行决定如何开展他们的工作，只要能够满足社区提出的质量要求，没有人可以告诉他们做什么或者应该怎样做。如果你想就怎样做发表意见，你必须展现出自己并且准备好接受肩头的任务，这种特有的民主形式——我们称之为多do-ocracy——极大地调用参与者的积极性。拥有足够多技能，时间和动力的人可以切实地影响到项目进行的方向。这一点已经被Debian项目中超过1000位官方成员和世界上数以万计的参与者所验证。这也难怪Debian被称为最大的社区驱动型自由软件项目。</p>
+<p>从上述内容来看，Debian的确很特别。但我们并不是唯一注意到这一点的人。根据<a href="https://distrowatch.com/" target="_blank" rel="noopener">DistroWatch</a>，有超过300个活跃的自由软件分发版，其中半数基于Debian。就是说他们对Debian做了适配——增减、修改或是重新编译包——来满足他们用户的需求，生成最终的产品。值得一提的是，在这些自由软件的衍生品中，用户享有修改和重新分发的自由，而这种自由不仅适用于个人开发的软件，而且适用于整个分发版本。通过制定基于标准分发版本的衍生品，来扩大自由软件的使用者和参与者的形式非常常见。得益于繁荣的开源生态系统，自由软件能与基于所有权的软件在一些应用领域分庭抗礼，比如一直以来为后者所占领的桌面应用场景。Debian社区在整个开源生态系统中起到了根基性的作用：即使你并没有直接使用Debian，或者你的分发版作者并没有告诉你，你仍然可能从Debian社区的努力工作中受益。</p>
+<p>Debian的独特性有时也会带来出乎意料的结果。关于数码自由的不同看法使得我们需要重新定义软件的含义。很久以前，Debian项目就认识到一个问题。作为一套操作系统，你必须同时分发许多非软件的内容，比如音乐、图像、文档、原始数据、硬件等等。但是软件自由的标准是否适用于这些内容呢？我们是否应该对不同的内容持有不同的要求，还是说所有的内容都要满足一套关于自由的标准？Debian项目选择了后者——Debian系统搭载的所有内容都应该满足用户能自由使用的标准。这种激进哲学的姿态带来了深远的影响。它意味着我们不能分发收费的硬件、非商业的艺术品，和任何出版书籍——修改它们可能玷污作者的声誉。</p>
+<p>但是这本书不同，它满足Debian提倡的自由标准。它解决了长久以来，Debian都存在的一个巨大缺点——很少有关于它的介绍书籍。这一点意味着很少有阅读材料能帮助宣传Debian，体现它的价值并展现它的优势。讽刺的是，这也正说明了我们没有太多能够随Debian操作系统一起分发的内容。这本书是第一本指出这些缺点的官方文档。你可以使用<strong>apt install</strong>命令来安装这本书，可以重新分发它，也可以复制这本书所在的仓库，甚至提交bug报告和修复它。这样，其他人就可以从你的参与中受益。这本书的维护者——同时也是作者们，是Debian项目中的长期成员，他们加入到关于自由价值的社会思潮中并且切身参与了Debian项目的方方面面，同时也深知这种角色所代表的职责。通过发布这本自由之书，他们再一次向Debian社区贡献了他们的服务。</p>
+<p>我们真诚地希望你能在阅读这本书的时候，享有与我们同等的自由。</p>
+<p>2015年10月</p>
+<p>Stefano Zacchiroli (Debian Project Leader 2010-2013),  Lucas Nussbaum (Debian Project Leader 2013-2015) and Neil McGovern (Debian Project Leader 2015-incumbent)</p>
+<p>附录：<a href="debian-handbook.pdf" title="下载">debian-handbook.pdf</a></p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/translation/" rel="tag"># translation</a>
+          
+            <a href="/tags/Debian/" rel="tag"># Debian</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/16/vcpkg/" rel="next" title="Vcpkg——C++包管理工具">
+                <i class="fa fa-chevron-left"></i> Vcpkg——C++包管理工具
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/06/19/The-Design-of-Task-System/" rel="prev" title="The Design of Task System">
+                The Design of Task System <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="lv-container" data-id="city" data-uid="MTAyMC80NDkwNC8yMTQyNg=="></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Wkkkkk</p>
+              <div class="site-description motion-element" itemprop="description"></div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">32</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-fas fa-heartbeat"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wkkkkk</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-user"></i>
+    </span>
+    <span class="site-uv" title="总访客量">
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+    </span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+  
+
+  
+    <span class="post-meta-item-icon">
+      <i class="fa fa-eye"></i>
+    </span>
+    <span class="site-pv" title="总访问量">
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+    <script>
+  window.livereOptions = {
+    refer: '2019/06/19/debian-preface/'
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+</script>
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
